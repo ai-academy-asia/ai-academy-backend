@@ -7,7 +7,9 @@ from .auth_account import (  # noqa: F401
     AuthAccount,
 )
 from .classroom import Classroom  # noqa: F401
+from .cohort import COHORT_STATUSES, Cohort  # noqa: F401
 from .course import COURSE_LEVELS, COURSE_STATUSES, Course  # noqa: F401
+from .enrollment import ENROLLMENT_STATUSES, Enrollment  # noqa: F401
 from .refresh_token import RefreshToken  # noqa: F401
 from .staff import STAFF_ROLES, Staff  # noqa: F401
 from .student import Student  # noqa: F401

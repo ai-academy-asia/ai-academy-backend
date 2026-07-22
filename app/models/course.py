@@ -32,13 +32,16 @@ class Course(db.Model):
     tagline_mn = db.Column(db.String(300))
     tagline_en = db.Column(db.String(300))
 
+    target_audience = db.Column(db.String(200))  # ERD parity (free-text audience)
     age_min = db.Column(db.Integer)
     age_max = db.Column(db.Integer)
 
     start_date = db.Column(db.Date)
     end_date = db.Column(db.Date)
     duration_weeks = db.Column(db.Integer)
+    duration_label = db.Column(db.String(80))    # ERD: display label e.g. "3 долоо хоног"
     format = db.Column(db.String(20))            # online | in_person | hybrid
+    sort_order = db.Column(db.Integer)           # ERD: manual ordering
 
     price_amount = db.Column(db.Numeric(12, 2))
     currency = db.Column(db.String(3), default="MNT")
@@ -53,7 +56,13 @@ class Course(db.Model):
     prerequisites_mn = db.Column(db.Text)
     prerequisites_en = db.Column(db.Text)
     capacity = db.Column(db.Integer)
+    # ERD parity: course capability flags + integrations.
+    has_exam = db.Column(db.Boolean, default=False)
+    has_final_project = db.Column(db.Boolean, default=False)
     final_project_type = db.Column(db.String(60))
+    has_attendance = db.Column(db.Boolean, default=False)
+    attendance_method = db.Column(db.String(30))     # qr_scan | roll_call | ...
+    google_classroom_url = db.Column(db.String(500))
     curriculum = db.Column(db.JSON)              # list of modules/topics
     whats_included = db.Column(db.JSON)          # list of strings
     instructors = db.Column(db.JSON)             # list of {name, title?, ...}
@@ -96,12 +105,15 @@ class Course(db.Model):
             "status": self.status,
             "title": {"mn": self.title_mn, "en": self.title_en},
             "tagline": {"mn": self.tagline_mn, "en": self.tagline_en},
+            "target_audience": self.target_audience,
             "age_min": self.age_min,
             "age_max": self.age_max,
             "start_date": self.start_date.isoformat() if self.start_date else None,
             "end_date": self.end_date.isoformat() if self.end_date else None,
             "duration_weeks": self.duration_weeks,
+            "duration_label": self.duration_label,
             "format": self.format,
+            "sort_order": self.sort_order,
             "price_amount": self._price(self.price_amount),
             "currency": self.currency,
             "discount_percent": self.discount_percent,
@@ -118,7 +130,12 @@ class Course(db.Model):
                 "description": {"mn": self.description_mn, "en": self.description_en},
                 "prerequisites": {"mn": self.prerequisites_mn, "en": self.prerequisites_en},
                 "capacity": self.capacity,
+                "has_exam": self.has_exam,
+                "has_final_project": self.has_final_project,
                 "final_project_type": self.final_project_type,
+                "has_attendance": self.has_attendance,
+                "attendance_method": self.attendance_method,
+                "google_classroom_url": self.google_classroom_url,
                 "curriculum": self.curriculum,
                 "whats_included": self.whats_included,
                 "instructors": self.instructors,

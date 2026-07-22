@@ -13,6 +13,7 @@ class Classroom(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)      # e.g. "Room 301"
     center_name = db.Column(db.String(200))               # e.g. "AI Academy Central"
+    location = db.Column(db.String(255))                  # ERD: address / location text
     capacity = db.Column(db.Integer)
     floor = db.Column(db.String(40))
     equipment = db.Column(db.JSON)                         # list, e.g. ["projector", "30 PCs"]
@@ -33,6 +34,7 @@ class Classroom(db.Model):
             "id": self.id,
             "name": self.name,
             "center_name": self.center_name,
+            "location": self.location,
             "capacity": self.capacity,
             "floor": self.floor,
             "equipment": self.equipment,

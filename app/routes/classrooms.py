@@ -9,7 +9,7 @@ from app.routes.common import json_fail
 
 bp = Blueprint("classrooms", __name__, url_prefix="/admin/classrooms")
 
-_WRITABLE = {"name", "center_name", "capacity", "floor", "equipment", "is_active", "notes"}
+_WRITABLE = {"name", "center_name", "location", "capacity", "floor", "equipment", "is_active", "notes"}
 
 
 def _apply(classroom, data):

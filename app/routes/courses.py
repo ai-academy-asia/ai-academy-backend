@@ -37,11 +37,14 @@ bp = Blueprint("courses", __name__, url_prefix="/courses")
 _WRITABLE = {
     "slug", "category", "level", "status",
     "title_mn", "title_en", "tagline_mn", "tagline_en",
-    "age_min", "age_max", "duration_weeks", "format",
+    "target_audience", "age_min", "age_max",
+    "duration_weeks", "duration_label", "format", "sort_order",
     "price_amount", "currency", "discount_percent",
     "banner_image_url", "icon",
     "description_mn", "description_en", "prerequisites_mn", "prerequisites_en",
-    "capacity", "final_project_type",
+    "capacity",
+    "has_exam", "has_final_project", "final_project_type",
+    "has_attendance", "attendance_method", "google_classroom_url",
     "curriculum", "whats_included", "instructors",
 }
 _DATE_FIELDS = {"start_date", "end_date"}
