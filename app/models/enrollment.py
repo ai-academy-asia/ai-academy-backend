@@ -57,4 +57,7 @@ class Enrollment(db.Model):
         return data
 
     def __repr__(self) -> str:
-        return f"<Enrollment {self.id} cohort={self.cohort_id} student={self.student_id} {self.status}>"
+        return (
+            f"<Enrollment {self.id} cohort={self.cohort_id} "
+            f"student={self.student_id} {self.status}>"
+        )

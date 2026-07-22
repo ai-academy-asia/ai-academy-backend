@@ -42,3 +42,6 @@ instance/
 pgdata/
 
 INFRASTRUCTURE.md
+
+# Ruff linter cache
+.ruff_cache/

@@ -10,6 +10,7 @@ import jwt
 from flask import g, request
 
 from app.extensions import db
+
 from .tokens import decode_token
 
 

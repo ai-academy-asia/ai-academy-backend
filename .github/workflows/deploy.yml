@@ -1,8 +1,9 @@
-name: Deploy to EC2
+name: CI/CD
 
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 concurrency:
@@ -10,7 +11,27 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ruff
+        run: pip install ruff==0.15.22
+
+      - name: Ruff lint (config in pyproject.toml)
+        run: ruff check app/ wsgi.py
+
   deploy:
+    needs: lint
+    # Only deploy on push to main / manual run — never on pull requests.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

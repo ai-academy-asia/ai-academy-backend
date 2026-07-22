@@ -3,6 +3,7 @@
 Public: list + detail (published courses only).
 Staff with ``course:edit``: create / update / delete + template file upload.
 """
+import contextlib
 import io
 import mimetypes
 import os
@@ -180,16 +181,22 @@ def update_course(id_or_slug):
 @require_permission("course:edit")
 def delete_course(id_or_slug):
     course = _get_course(id_or_slug)
-    # Best-effort cleanup of S3 objects.
-    for key_col, _ in _TEMPLATE_KINDS.values():
-        key = getattr(course, key_col)
-        if key:
-            try:
-                delete_object(key)
-            except S3StorageError:
-                pass
+    template_keys = [
+        getattr(course, key_col)
+        for key_col, _ in _TEMPLATE_KINDS.values()
+        if getattr(course, key_col)
+    ]
     db.session.delete(course)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        # A cohort (or other row) still references this course (FK RESTRICT).
+        db.session.rollback()
+        _fail(409, "course_in_use")
+    # DB delete committed — best-effort S3 cleanup afterwards.
+    for key in template_keys:
+        with contextlib.suppress(S3StorageError):
+            delete_object(key)
     return jsonify(status="deleted")
 
 

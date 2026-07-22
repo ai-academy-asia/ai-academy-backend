@@ -69,9 +69,11 @@ def _validate(cohort):
         json_fail(400, "invalid_classroom_id")
     if cohort.start_date and cohort.end_date and cohort.end_date < cohort.start_date:
         json_fail(400, "end_before_start")
-    if cohort.meeting_days is not None:
-        if not isinstance(cohort.meeting_days, list) or any(d not in WEEKDAYS for d in cohort.meeting_days):
-            json_fail(400, "invalid_meeting_days", valid=list(WEEKDAYS))
+    if cohort.meeting_days is not None and (
+        not isinstance(cohort.meeting_days, list)
+        or any(d not in WEEKDAYS for d in cohort.meeting_days)
+    ):
+        json_fail(400, "invalid_meeting_days", valid=list(WEEKDAYS))
     for field in ("start_time", "end_time"):
         val = getattr(cohort, field)
         if val and not _TIME_RE.match(val):

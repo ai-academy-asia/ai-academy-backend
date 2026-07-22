@@ -20,14 +20,20 @@ class Cohort(db.Model):
         db.Integer, db.ForeignKey("courses.id", ondelete="RESTRICT"), nullable=False, index=True
     )
     # ERD: sub-cohort support (e.g. Bootcamp's parallel classes).
-    parent_cohort_id = db.Column(db.Integer, db.ForeignKey("cohorts.id", ondelete="SET NULL"), index=True)
+    parent_cohort_id = db.Column(
+        db.Integer, db.ForeignKey("cohorts.id", ondelete="SET NULL"), index=True
+    )
     name = db.Column(db.String(200), nullable=False)   # e.g. "Corporate Leaders 2026-08"
     start_date = db.Column(db.Date)
     end_date = db.Column(db.Date)
     graduation_date = db.Column(db.Date)               # ERD parity
 
-    teacher_id = db.Column(db.Integer, db.ForeignKey("teachers.id", ondelete="SET NULL"), index=True)
-    classroom_id = db.Column(db.Integer, db.ForeignKey("classrooms.id", ondelete="SET NULL"), index=True)
+    teacher_id = db.Column(
+        db.Integer, db.ForeignKey("teachers.id", ondelete="SET NULL"), index=True
+    )
+    classroom_id = db.Column(
+        db.Integer, db.ForeignKey("classrooms.id", ondelete="SET NULL"), index=True
+    )
 
     capacity = db.Column(db.Integer)
     status = db.Column(db.String(20), nullable=False, default="draft", index=True)

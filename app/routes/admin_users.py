@@ -6,7 +6,7 @@ registered for both under /admin/students and /admin/teachers.
 """
 from datetime import date
 
-from flask import Blueprint, current_app, g, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 
 from app.auth import require_permission, revoke_all_for_account
 from app.auth.service import AccountError, provision_account

@@ -43,7 +43,7 @@ def create_staff(email, password, first_name, last_name, phone, role, no_force_p
             must_change_password=not no_force_pw_change,
         )
     except AccountError as exc:
-        raise click.ClickException(str(exc))
+        raise click.ClickException(str(exc)) from exc
     _echo_account(account, staff)
 
 
@@ -62,7 +62,7 @@ def create_teacher(email, password, first_name, last_name, phone, no_force_pw_ch
             must_change_password=not no_force_pw_change,
         )
     except AccountError as exc:
-        raise click.ClickException(str(exc))
+        raise click.ClickException(str(exc)) from exc
     _echo_account(account, teacher)
 
 
@@ -81,7 +81,7 @@ def create_student(email, password, first_name, last_name, phone, no_force_pw_ch
             must_change_password=not no_force_pw_change,
         )
     except AccountError as exc:
-        raise click.ClickException(str(exc))
+        raise click.ClickException(str(exc)) from exc
     _echo_account(account, student)
 
 

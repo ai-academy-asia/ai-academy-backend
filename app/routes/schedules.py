@@ -19,6 +19,10 @@ def _require_login():
         json_fail(401, "authentication_required")
 
 
+def _has_any(user, *perms):
+    return any(has_permission(user.role, p) for p in perms)
+
+
 def _cohorts_for(column, value):
     return (
         Cohort.query.filter(column == value)
@@ -66,7 +70,7 @@ def teacher_schedule(teacher_id):
     _require_login()
     user = g.current_user
     is_self = user.actor_type == "teacher" and user.actor_id == teacher_id
-    is_staff = has_permission(user.role, "cohort:manage") or has_permission(user.role, "schedule:manage")
+    is_staff = _has_any(user, "cohort:manage", "schedule:manage")
     if not (is_self or is_staff):
         json_fail(403, "forbidden")
     if db.session.get(Teacher, teacher_id) is None:
@@ -79,7 +83,7 @@ def teacher_schedule(teacher_id):
 def classroom_schedule(classroom_id):
     _require_login()
     user = g.current_user
-    if not (has_permission(user.role, "cohort:manage") or has_permission(user.role, "classroom:manage")):
+    if not _has_any(user, "cohort:manage", "classroom:manage"):
         json_fail(403, "forbidden")
     if db.session.get(Classroom, classroom_id) is None:
         json_fail(404, "not_found")
