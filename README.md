@@ -34,7 +34,7 @@ pip install -r requirements.txt
 cp .env.example .env        # edit SECRET_KEY / passwords as needed
 
 # 3. Start PostgreSQL
-docker compose up -d
+docker compose --profile dev up -d
 
 # 4. Initialize migrations (first time only) and apply
 flask db init
@@ -53,11 +53,11 @@ python wsgi.py                 # http://localhost:8000
 ## Everyday commands
 ```bash
 source .venv/bin/activate
-docker compose up -d          # start db
+docker compose --profile dev up -d          # start db
 flask db migrate -m "msg"     # after changing models
 flask db upgrade              # apply migrations
 python wsgi.py                # dev server on http://localhost:8000
-docker compose down           # stop db (data persists in the pgdata volume)
+docker compose --profile dev down           # stop db (data persists in the pgdata volume)
 ```
 
 ## Endpoints

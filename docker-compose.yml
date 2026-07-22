@@ -1,5 +1,22 @@
+# Single compose file with profiles:
+#   Production (server / CI):  docker compose --profile prod up -d --build
+#   Local dev (db + pgAdmin):  docker compose --profile dev  up -d
 services:
+  # ---- Production app (server) ----
+  app:
+    profiles: ["prod"]
+    build: .
+    image: aiaa-backend:latest
+    container_name: aiaa-app
+    restart: unless-stopped
+    env_file: .env
+    # Bind to localhost only — host nginx is the public entrypoint.
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  # ---- Local dev database ----
   db:
+    profiles: ["dev"]
     image: postgres:16-alpine
     container_name: aiaa-postgres
     restart: unless-stopped
@@ -17,7 +34,9 @@ services:
       timeout: 5s
       retries: 5
 
+  # ---- Local dev pgAdmin ----
   pgadmin:
+    profiles: ["dev"]
     image: dpage/pgadmin4:latest
     container_name: aiaa-pgadmin
     restart: unless-stopped
