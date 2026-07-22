@@ -1,0 +1,51 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Sync code to server
+        run: |
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes" \
+            --exclude '.git' --exclude '.github' --exclude '.venv' \
+            --exclude '.env' --exclude '*.pem' --exclude 'aiaa-deploy*' \
+            --exclude '*.csv' --exclude 'CLAUDE.md' --exclude '__pycache__' \
+            ./ "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/ubuntu/aiaa-backend/"
+
+      - name: Build & restart containers
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            'cd /home/ubuntu/aiaa-backend && \
+             docker compose -f docker-compose.prod.yml up -d --build && \
+             docker image prune -f'
+
+      - name: Health check
+        run: |
+          for i in $(seq 1 10); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" https://api.ai-academy.asia/health || true)
+            echo "attempt $i: HTTP $code"
+            if [ "$code" = "200" ]; then echo "deploy healthy ✓"; exit 0; fi
+            sleep 5
+          done
+          echo "health check failed"; exit 1

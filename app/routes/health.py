@@ -8,7 +8,7 @@ bp = Blueprint("health", __name__)
 
 @bp.get("/")
 def index():
-    return jsonify(service="aiaa-backend", status="ok")
+    return jsonify(service="aiaa-backend", status="ok", version="1.0")
 
 
 @bp.get("/health")

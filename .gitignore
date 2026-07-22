@@ -21,6 +21,10 @@ env/
 *credentials*.csv
 *.pem
 
+# SSH deploy keys — NEVER commit
+aiaa-deploy
+aiaa-deploy.pub
+
 # Local-only Claude project notes (contains infra IDs/IPs)
 CLAUDE.md
 
