@@ -16,7 +16,9 @@
     { "key": "course_id", "value": "" },
     { "key": "course_slug", "value": "" },
     { "key": "student_id", "value": "" },
-    { "key": "teacher_id", "value": "" }
+    { "key": "teacher_id", "value": "" },
+    { "key": "classroom_id", "value": "" },
+    { "key": "cohort_id", "value": "" }
   ],
   "item": [
     {
@@ -186,7 +188,7 @@
             "url": { "raw": "{{base_url}}/courses", "host": ["{{base_url}}"], "path": ["courses"] },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"slug\": \"summer-bootcamp-2026\",\n  \"title_mn\": \"Зуны бүтээлч кэмп\",\n  \"title_en\": \"Summer Bootcamp\",\n  \"tagline_mn\": \"3 долоо хоногийн эрчимжүүлсэн\",\n  \"category\": \"bootcamp\",\n  \"level\": \"junior\",\n  \"status\": \"draft\",\n  \"age_min\": 10,\n  \"age_max\": 18,\n  \"start_date\": \"2026-06-01\",\n  \"end_date\": \"2026-06-21\",\n  \"duration_weeks\": 3,\n  \"format\": \"in_person\",\n  \"price_amount\": 1200000,\n  \"currency\": \"MNT\",\n  \"discount_percent\": 50,\n  \"description_mn\": \"...\",\n  \"curriculum\": [\"Week 1\", \"Week 2\", \"Week 3\"],\n  \"whats_included\": [\"Laptop\", \"Certificate\"]\n}"
+              "raw": "{\n  \"slug\": \"summer-bootcamp-2026\",\n  \"title_mn\": \"Зуны бүтээлч кэмп\",\n  \"title_en\": \"Summer Bootcamp\",\n  \"tagline_mn\": \"3 долоо хоногийн эрчимжүүлсэн\",\n  \"category\": \"bootcamp\",\n  \"level\": \"junior\",\n  \"status\": \"draft\",\n  \"target_audience\": \"Junior · Нас 10-18\",\n  \"age_min\": 10,\n  \"age_max\": 18,\n  \"start_date\": \"2026-06-01\",\n  \"end_date\": \"2026-06-21\",\n  \"duration_weeks\": 3,\n  \"duration_label\": \"3 долоо хоног\",\n  \"sort_order\": 1,\n  \"format\": \"in_person\",\n  \"price_amount\": 1200000,\n  \"currency\": \"MNT\",\n  \"discount_percent\": 50,\n  \"description_mn\": \"...\",\n  \"has_exam\": false,\n  \"has_final_project\": true,\n  \"final_project_type\": \"showcase\",\n  \"has_attendance\": true,\n  \"attendance_method\": \"qr_scan\",\n  \"google_classroom_url\": \"https://classroom.google.com/...\",\n  \"curriculum\": [\"Week 1\", \"Week 2\", \"Week 3\"],\n  \"whats_included\": [\"Laptop\", \"Certificate\"]\n}"
             }
           }
         },
@@ -411,6 +413,232 @@
             "method": "DELETE",
             "header": [],
             "url": { "raw": "{{base_url}}/admin/teachers/{{teacher_id}}", "host": ["{{base_url}}"], "path": ["admin", "teachers", "{{teacher_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Classrooms (super_admin only)",
+      "item": [
+        {
+          "name": "List classrooms",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/classrooms?q=&active=",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "classrooms"],
+              "query": [
+                { "key": "q", "value": "", "description": "search name/center", "disabled": true },
+                { "key": "active", "value": "", "description": "true | false", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get classroom",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/admin/classrooms/{{classroom_id}}", "host": ["{{base_url}}"], "path": ["admin", "classrooms", "{{classroom_id}}"] }
+          }
+        },
+        {
+          "name": "Create classroom",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "var j = pm.response.json();",
+              "if (j.id) pm.collectionVariables.set('classroom_id', j.id);"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/admin/classrooms", "host": ["{{base_url}}"], "path": ["admin", "classrooms"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Room 301\",\n  \"center_name\": \"AI Academy Central\",\n  \"location\": \"Sukhbaatar district, bldg 5\",\n  \"capacity\": 30,\n  \"floor\": \"3\",\n  \"equipment\": [\"projector\", \"30 PCs\"],\n  \"notes\": \"corner room\"\n}" }
+          }
+        },
+        {
+          "name": "Update classroom",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/admin/classrooms/{{classroom_id}}", "host": ["{{base_url}}"], "path": ["admin", "classrooms", "{{classroom_id}}"] },
+            "body": { "mode": "raw", "raw": "{\n  \"capacity\": 25,\n  \"is_active\": true\n}" }
+          }
+        },
+        {
+          "name": "Delete classroom",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{base_url}}/admin/classrooms/{{classroom_id}}", "host": ["{{base_url}}"], "path": ["admin", "classrooms", "{{classroom_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cohorts (admin · cohort:manage)",
+      "item": [
+        {
+          "name": "List cohorts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/cohorts?status=&course_id=&teacher_id=&classroom_id=",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "cohorts"],
+              "query": [
+                { "key": "status", "value": "", "description": "draft|open|closed", "disabled": true },
+                { "key": "course_id", "value": "", "disabled": true },
+                { "key": "teacher_id", "value": "", "disabled": true },
+                { "key": "classroom_id", "value": "", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get cohort",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/admin/cohorts/{{cohort_id}}", "host": ["{{base_url}}"], "path": ["admin", "cohorts", "{{cohort_id}}"] }
+          }
+        },
+        {
+          "name": "Create cohort",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "var j = pm.response.json();",
+              "if (j.id) pm.collectionVariables.set('cohort_id', j.id);"
+            ] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/admin/cohorts", "host": ["{{base_url}}"], "path": ["admin", "cohorts"] },
+            "body": { "mode": "raw", "raw": "{\n  \"course_id\": {{course_id}},\n  \"name\": \"Corporate Leaders 2026-08\",\n  \"start_date\": \"2026-08-06\",\n  \"end_date\": \"2026-10-06\",\n  \"graduation_date\": \"2026-10-10\",\n  \"teacher_id\": {{teacher_id}},\n  \"classroom_id\": {{classroom_id}},\n  \"capacity\": 20,\n  \"status\": \"open\",\n  \"schedule_note\": \"Мя/Лх 18:00-20:00\"\n}" },
+            "description": "Assigning a teacher/classroom whose date range overlaps another cohort's returns 409 (teacher_double_booked / classroom_double_booked)."
+          }
+        },
+        {
+          "name": "Update cohort",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/admin/cohorts/{{cohort_id}}", "host": ["{{base_url}}"], "path": ["admin", "cohorts", "{{cohort_id}}"] },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"closed\"\n}" }
+          }
+        },
+        {
+          "name": "Delete cohort",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{base_url}}/admin/cohorts/{{cohort_id}}", "host": ["{{base_url}}"], "path": ["admin", "cohorts", "{{cohort_id}}"] }
+          }
+        },
+        {
+          "name": "Enroll student (staff)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/admin/cohorts/{{cohort_id}}/enroll", "host": ["{{base_url}}"], "path": ["admin", "cohorts", "{{cohort_id}}", "enroll"] },
+            "body": { "mode": "raw", "raw": "{\n  \"student_id\": {{student_id}}\n}" }
+          }
+        },
+        {
+          "name": "List cohort students (roster)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/admin/cohorts/{{cohort_id}}/students", "host": ["{{base_url}}"], "path": ["admin", "cohorts", "{{cohort_id}}", "students"] }
+          }
+        },
+        {
+          "name": "Remove cohort student",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{base_url}}/admin/cohorts/{{cohort_id}}/students/{{student_id}}", "host": ["{{base_url}}"], "path": ["admin", "cohorts", "{{cohort_id}}", "students", "{{student_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cohorts (public / student)",
+      "item": [
+        {
+          "name": "Browse cohorts (public)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/cohorts?course_id=",
+              "host": ["{{base_url}}"],
+              "path": ["cohorts"],
+              "query": [{ "key": "course_id", "value": "", "disabled": true }]
+            }
+          }
+        },
+        {
+          "name": "Get cohort (public)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/cohorts/{{cohort_id}}", "host": ["{{base_url}}"], "path": ["cohorts", "{{cohort_id}}"] }
+          }
+        },
+        {
+          "name": "Enroll self (student)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{base_url}}/cohorts/{{cohort_id}}/enroll", "host": ["{{base_url}}"], "path": ["cohorts", "{{cohort_id}}", "enroll"] },
+            "description": "Requires a STUDENT access token (log in as a student first). Cohort must be 'open' with seats available."
+          }
+        },
+        {
+          "name": "Cancel own enrollment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{base_url}}/cohorts/{{cohort_id}}/enroll", "host": ["{{base_url}}"], "path": ["cohorts", "{{cohort_id}}", "enroll"] }
+          }
+        },
+        {
+          "name": "My cohorts (student)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/me/cohorts", "host": ["{{base_url}}"], "path": ["me", "cohorts"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Schedules (хувиар)",
+      "item": [
+        {
+          "name": "Teacher schedule",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/teachers/{{teacher_id}}/schedule", "host": ["{{base_url}}"], "path": ["teachers", "{{teacher_id}}", "schedule"] },
+            "description": "The teacher themselves, or staff with cohort:manage / schedule:manage."
+          }
+        },
+        {
+          "name": "Classroom schedule",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/classrooms/{{classroom_id}}/schedule", "host": ["{{base_url}}"], "path": ["classrooms", "{{classroom_id}}", "schedule"] },
+            "description": "Staff with cohort:manage / classroom:manage."
           }
         }
       ]
