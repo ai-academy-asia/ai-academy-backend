@@ -1,8 +1,8 @@
 {
   "info": {
     "name": "AIAA Backend (prod)",
-    "_postman_id": "aiaa-backend-prod-0001",
-    "description": "AI Academy Asia backend API — points at https://api.ai-academy.asia.\n\nUsage:\n1. Run **Auth › Login** first — it auto-saves access_token + refresh_token to collection variables.\n2. All protected requests inherit `Bearer {{access_token}}`.\n3. Create requests (course/student/teacher) auto-save their id to a variable used by the follow-up requests.\n4. When the access token expires (1h), run **Auth › Refresh** to rotate it.\n\nRoles: super_admin (all), content_marketing (course:edit), sales_enrollment (student:manage/teacher:manage), finance.",
+    "_postman_id": "aiaa-backend-prod-0002",
+    "description": "AI Academy Asia backend API — https://api.ai-academy.asia.\n\nOrganized to match the backend's actor routers:\n- Auth    : shared login/session (all actors)\n- Student : public browse + student self-service\n- Teacher : a teacher's own schedule\n- Admin   : back-office CRUD (Students, Teachers, Classrooms, Cohorts, Course content, Schedules)\n- Health\n\nUsage:\n1. Run Auth > Login first — it auto-saves access_token + refresh_token.\n2. Protected requests inherit `Bearer {{access_token}}`.\n3. Create requests save their id (course_id, student_id, teacher_id, classroom_id, cohort_id) for the follow-ups.\n4. When the access token expires (1h), run Auth > Refresh.\n\nRoles: super_admin (all) · content_marketing (course:edit) · sales_enrollment (student/teacher/cohort/enrollment/schedule:manage) · finance.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -23,48 +23,34 @@
   "item": [
     {
       "name": "Auth",
+      "description": "Shared authentication for every actor.",
       "item": [
         {
           "name": "Login",
           "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "if (j.access_token) pm.collectionVariables.set('access_token', j.access_token);",
-                  "if (j.refresh_token) pm.collectionVariables.set('refresh_token', j.refresh_token);",
-                  "console.log('must_change_password =', j.must_change_password);"
-                ]
-              }
-            }
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "var j = pm.response.json();",
+              "if (j.access_token) pm.collectionVariables.set('access_token', j.access_token);",
+              "if (j.refresh_token) pm.collectionVariables.set('refresh_token', j.refresh_token);",
+              "console.log('must_change_password =', j.must_change_password);"
+            ] } }
           ],
           "request": {
             "auth": { "type": "noauth" },
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@ai-academy.asia\",\n  \"password\": \"CHANGE_ME\"\n}"
-            }
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@ai-academy.asia\",\n  \"password\": \"CHANGE_ME\"\n}" }
           }
         },
         {
           "name": "Refresh",
           "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "if (j.access_token) pm.collectionVariables.set('access_token', j.access_token);",
-                  "if (j.refresh_token) pm.collectionVariables.set('refresh_token', j.refresh_token);"
-                ]
-              }
-            }
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "var j = pm.response.json();",
+              "if (j.access_token) pm.collectionVariables.set('access_token', j.access_token);",
+              "if (j.refresh_token) pm.collectionVariables.set('refresh_token', j.refresh_token);"
+            ] } }
           ],
           "request": {
             "auth": { "type": "noauth" },
@@ -76,630 +62,262 @@
         },
         {
           "name": "Me",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": { "raw": "{{base_url}}/auth/me", "host": ["{{base_url}}"], "path": ["auth", "me"] }
-          }
+          "request": { "method": "GET", "header": [],
+            "url": { "raw": "{{base_url}}/auth/me", "host": ["{{base_url}}"], "path": ["auth", "me"] } }
         },
         {
           "name": "Change password",
-          "request": {
-            "method": "POST",
+          "request": { "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": { "raw": "{{base_url}}/auth/change-password", "host": ["{{base_url}}"], "path": ["auth", "change-password"] },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"current_password\": \"CHANGE_ME\",\n  \"new_password\": \"NewStrongPass123\"\n}"
-            }
-          }
+            "body": { "mode": "raw", "raw": "{\n  \"current_password\": \"CHANGE_ME\",\n  \"new_password\": \"NewStrongPass123\"\n}" } }
         },
         {
           "name": "Logout (this device)",
-          "request": {
-            "auth": { "type": "noauth" },
-            "method": "POST",
+          "request": { "auth": { "type": "noauth" }, "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": { "raw": "{{base_url}}/auth/logout", "host": ["{{base_url}}"], "path": ["auth", "logout"] },
-            "body": { "mode": "raw", "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}" }
-          }
+            "body": { "mode": "raw", "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}" } }
         },
         {
           "name": "Logout all",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": { "raw": "{{base_url}}/auth/logout-all", "host": ["{{base_url}}"], "path": ["auth", "logout-all"] }
-          }
+          "request": { "method": "POST", "header": [],
+            "url": { "raw": "{{base_url}}/auth/logout-all", "host": ["{{base_url}}"], "path": ["auth", "logout-all"] } }
         }
       ]
     },
     {
-      "name": "Courses (public)",
+      "name": "Student",
+      "description": "Public course/cohort browse (no auth) + student self-service (needs a STUDENT token).",
       "item": [
         {
-          "name": "List courses",
-          "request": {
-            "auth": { "type": "noauth" },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/courses?level=&category=&status=",
-              "host": ["{{base_url}}"],
-              "path": ["courses"],
+          "name": "Browse courses (public)",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [],
+            "url": { "raw": "{{base_url}}/courses?level=&category=", "host": ["{{base_url}}"], "path": ["courses"],
               "query": [
                 { "key": "level", "value": "", "description": "junior | adult", "disabled": true },
-                { "key": "category", "value": "", "disabled": true },
-                { "key": "status", "value": "", "description": "staff only: open|closed|draft", "disabled": true }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get course (by id or slug)",
-          "request": {
-            "auth": { "type": "noauth" },
-            "method": "GET",
-            "header": [],
-            "url": { "raw": "{{base_url}}/courses/{{course_slug}}", "host": ["{{base_url}}"], "path": ["courses", "{{course_slug}}"] }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Courses (admin · course:edit)",
-      "item": [
-        {
-          "name": "List courses (admin — incl. drafts)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/courses?status=draft",
-              "host": ["{{base_url}}"],
-              "path": ["courses"],
-              "query": [
-                { "key": "status", "value": "draft", "description": "draft | open | closed — OMIT (disable) to see ALL statuses. Only staff with course:edit see drafts; the public 'List courses' request never does.", "disabled": false },
-                { "key": "level", "value": "", "disabled": true },
                 { "key": "category", "value": "", "disabled": true }
-              ]
-            },
-            "description": "Authenticated list (sends Bearer token). A newly created course defaults to status=draft and is hidden from the public 'List courses'. Use this to see drafts, or publish via 'Update course' with {\"status\":\"open\"}."
-          }
+              ] } }
         },
         {
-          "name": "Create course",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "if (j.id) pm.collectionVariables.set('course_id', j.id);",
-                  "if (j.slug) pm.collectionVariables.set('course_slug', j.slug);"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/courses", "host": ["{{base_url}}"], "path": ["courses"] },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"slug\": \"summer-bootcamp-2026\",\n  \"title_mn\": \"Зуны бүтээлч кэмп\",\n  \"title_en\": \"Summer Bootcamp\",\n  \"tagline_mn\": \"3 долоо хоногийн эрчимжүүлсэн\",\n  \"category\": \"bootcamp\",\n  \"level\": \"junior\",\n  \"status\": \"draft\",\n  \"target_audience\": \"Junior · Нас 10-18\",\n  \"age_min\": 10,\n  \"age_max\": 18,\n  \"start_date\": \"2026-06-01\",\n  \"end_date\": \"2026-06-21\",\n  \"duration_weeks\": 3,\n  \"duration_label\": \"3 долоо хоног\",\n  \"sort_order\": 1,\n  \"format\": \"in_person\",\n  \"price_amount\": 1200000,\n  \"currency\": \"MNT\",\n  \"discount_percent\": 50,\n  \"description_mn\": \"...\",\n  \"has_exam\": false,\n  \"has_final_project\": true,\n  \"final_project_type\": \"showcase\",\n  \"has_attendance\": true,\n  \"attendance_method\": \"qr_scan\",\n  \"google_classroom_url\": \"https://classroom.google.com/...\",\n  \"curriculum\": [\"Week 1\", \"Week 2\", \"Week 3\"],\n  \"whats_included\": [\"Laptop\", \"Certificate\"]\n}"
-            }
-          }
+          "name": "Get course (by id or slug, public)",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [],
+            "url": { "raw": "{{base_url}}/courses/{{course_slug}}", "host": ["{{base_url}}"], "path": ["courses", "{{course_slug}}"] } }
         },
-        {
-          "name": "Update course",
-          "request": {
-            "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/courses/{{course_id}}", "host": ["{{base_url}}"], "path": ["courses", "{{course_id}}"] },
-            "body": { "mode": "raw", "raw": "{\n  \"status\": \"open\",\n  \"discount_percent\": 20\n}" }
-          }
-        },
-        {
-          "name": "Delete course",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": { "raw": "{{base_url}}/courses/{{course_id}}", "host": ["{{base_url}}"], "path": ["courses", "{{course_id}}"] }
-          }
-        },
-        {
-          "name": "Upload template (cert|contract)",
-          "request": {
-            "method": "PUT",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/courses/{{course_id}}/templates/cert",
-              "host": ["{{base_url}}"],
-              "path": ["courses", "{{course_id}}", "templates", "cert"],
-              "variable": []
-            },
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                { "key": "file", "type": "file", "src": [], "description": ".pdf/.doc/.docx, max 15MB. Change 'cert' to 'contract' in the URL for the contract template." }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Download template (cert|contract)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/courses/{{course_id}}/templates/cert",
-              "host": ["{{base_url}}"],
-              "path": ["courses", "{{course_id}}", "templates", "cert"]
-            }
-          }
-        },
-        {
-          "name": "Delete template (cert|contract)",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/courses/{{course_id}}/templates/cert",
-              "host": ["{{base_url}}"],
-              "path": ["courses", "{{course_id}}", "templates", "cert"]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Admin · Students (student:manage)",
-      "item": [
-        {
-          "name": "List students",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/admin/students?q=&limit=50&offset=0",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "students"],
-              "query": [
-                { "key": "q", "value": "", "description": "search by name", "disabled": false },
-                { "key": "limit", "value": "50" },
-                { "key": "offset", "value": "0" }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get student",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": { "raw": "{{base_url}}/admin/students/{{student_id}}", "host": ["{{base_url}}"], "path": ["admin", "students", "{{student_id}}"] }
-          }
-        },
-        {
-          "name": "Create student",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "if (j.id) pm.collectionVariables.set('student_id', j.id);"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/admin/students", "host": ["{{base_url}}"], "path": ["admin", "students"] },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"student1@example.mn\",\n  \"password\": \"TempPass123\",\n  \"first_name\": \"Бат\",\n  \"last_name\": \"Болд\",\n  \"phone\": \"99001122\",\n  \"birth_date\": \"2010-05-01\",\n  \"ui_mode\": \"kids\",\n  \"parent_name\": \"Дорж\",\n  \"parent_phone\": \"99887766\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Update student (profile + account)",
-          "request": {
-            "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/admin/students/{{student_id}}", "host": ["{{base_url}}"], "path": ["admin", "students", "{{student_id}}"] },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"phone\": \"88887777\",\n  \"email\": \"student1.new@example.mn\",\n  \"is_active\": true\n}"
-            }
-          }
-        },
-        {
-          "name": "Reset student password",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/admin/students/{{student_id}}/reset-password", "host": ["{{base_url}}"], "path": ["admin", "students", "{{student_id}}", "reset-password"] },
-            "body": { "mode": "raw", "raw": "{\n  \"new_password\": \"NewTempPass123\"\n}" }
-          }
-        },
-        {
-          "name": "Delete student",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": { "raw": "{{base_url}}/admin/students/{{student_id}}", "host": ["{{base_url}}"], "path": ["admin", "students", "{{student_id}}"] }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Admin · Teachers (teacher:manage)",
-      "item": [
-        {
-          "name": "List teachers",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/admin/teachers?q=&limit=50&offset=0",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "teachers"],
-              "query": [
-                { "key": "q", "value": "" },
-                { "key": "limit", "value": "50" },
-                { "key": "offset", "value": "0" }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get teacher",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": { "raw": "{{base_url}}/admin/teachers/{{teacher_id}}", "host": ["{{base_url}}"], "path": ["admin", "teachers", "{{teacher_id}}"] }
-          }
-        },
-        {
-          "name": "Create teacher",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json();",
-                  "if (j.id) pm.collectionVariables.set('teacher_id', j.id);"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/admin/teachers", "host": ["{{base_url}}"], "path": ["admin", "teachers"] },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"teacher1@example.mn\",\n  \"password\": \"TempPass123\",\n  \"first_name\": \"Сараа\",\n  \"last_name\": \"Ганбат\",\n  \"phone\": \"95001122\",\n  \"bio\": \"AI mentor\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Update teacher (profile + account)",
-          "request": {
-            "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/admin/teachers/{{teacher_id}}", "host": ["{{base_url}}"], "path": ["admin", "teachers", "{{teacher_id}}"] },
-            "body": { "mode": "raw", "raw": "{\n  \"bio\": \"Senior AI mentor\",\n  \"is_active\": true\n}" }
-          }
-        },
-        {
-          "name": "Reset teacher password",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/admin/teachers/{{teacher_id}}/reset-password", "host": ["{{base_url}}"], "path": ["admin", "teachers", "{{teacher_id}}", "reset-password"] },
-            "body": { "mode": "raw", "raw": "{\n  \"new_password\": \"NewTempPass123\"\n}" }
-          }
-        },
-        {
-          "name": "Delete teacher",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": { "raw": "{{base_url}}/admin/teachers/{{teacher_id}}", "host": ["{{base_url}}"], "path": ["admin", "teachers", "{{teacher_id}}"] }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Classrooms (super_admin only)",
-      "item": [
-        {
-          "name": "List classrooms",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/admin/classrooms?q=&active=",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "classrooms"],
-              "query": [
-                { "key": "q", "value": "", "description": "search name/center", "disabled": true },
-                { "key": "active", "value": "", "description": "true | false", "disabled": true }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get classroom",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": { "raw": "{{base_url}}/admin/classrooms/{{classroom_id}}", "host": ["{{base_url}}"], "path": ["admin", "classrooms", "{{classroom_id}}"] }
-          }
-        },
-        {
-          "name": "Create classroom",
-          "event": [
-            { "listen": "test", "script": { "type": "text/javascript", "exec": [
-              "var j = pm.response.json();",
-              "if (j.id) pm.collectionVariables.set('classroom_id', j.id);"
-            ] } }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/admin/classrooms", "host": ["{{base_url}}"], "path": ["admin", "classrooms"] },
-            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Room 301\",\n  \"center_name\": \"AI Academy Central\",\n  \"location\": \"Sukhbaatar district, bldg 5\",\n  \"capacity\": 30,\n  \"floor\": \"3\",\n  \"equipment\": [\"projector\", \"30 PCs\"],\n  \"notes\": \"corner room\"\n}" }
-          }
-        },
-        {
-          "name": "Update classroom",
-          "request": {
-            "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/admin/classrooms/{{classroom_id}}", "host": ["{{base_url}}"], "path": ["admin", "classrooms", "{{classroom_id}}"] },
-            "body": { "mode": "raw", "raw": "{\n  \"capacity\": 25,\n  \"is_active\": true\n}" }
-          }
-        },
-        {
-          "name": "Delete classroom",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": { "raw": "{{base_url}}/admin/classrooms/{{classroom_id}}", "host": ["{{base_url}}"], "path": ["admin", "classrooms", "{{classroom_id}}"] }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Cohorts (admin · cohort:manage)",
-      "item": [
-        {
-          "name": "List cohorts",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/admin/cohorts?status=&course_id=&teacher_id=&classroom_id=",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "cohorts"],
-              "query": [
-                { "key": "status", "value": "", "description": "draft|open|closed", "disabled": true },
-                { "key": "course_id", "value": "", "disabled": true },
-                { "key": "teacher_id", "value": "", "disabled": true },
-                { "key": "classroom_id", "value": "", "disabled": true }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get cohort",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": { "raw": "{{base_url}}/admin/cohorts/{{cohort_id}}", "host": ["{{base_url}}"], "path": ["admin", "cohorts", "{{cohort_id}}"] }
-          }
-        },
-        {
-          "name": "Create cohort",
-          "event": [
-            { "listen": "test", "script": { "type": "text/javascript", "exec": [
-              "var j = pm.response.json();",
-              "if (j.id) pm.collectionVariables.set('cohort_id', j.id);"
-            ] } }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/admin/cohorts", "host": ["{{base_url}}"], "path": ["admin", "cohorts"] },
-            "body": { "mode": "raw", "raw": "{\n  \"course_id\": {{course_id}},\n  \"name\": \"Corporate Leaders 2026-08\",\n  \"start_date\": \"2026-08-06\",\n  \"end_date\": \"2026-10-06\",\n  \"graduation_date\": \"2026-10-10\",\n  \"teacher_id\": {{teacher_id}},\n  \"classroom_id\": {{classroom_id}},\n  \"meeting_days\": [\"mon\", \"wed\"],\n  \"start_time\": \"18:00\",\n  \"end_time\": \"20:00\",\n  \"capacity\": 20,\n  \"status\": \"open\"\n}" },
-            "description": "meeting_days (mon..sun) + start_time/end_time (HH:MM) set the weekly time. A teacher/classroom already booked on an overlapping date range AND a shared weekday AND overlapping time returns 409 (teacher_double_booked / classroom_double_booked)."
-          }
-        },
-        {
-          "name": "Update cohort",
-          "request": {
-            "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/admin/cohorts/{{cohort_id}}", "host": ["{{base_url}}"], "path": ["admin", "cohorts", "{{cohort_id}}"] },
-            "body": { "mode": "raw", "raw": "{\n  \"status\": \"closed\"\n}" }
-          }
-        },
-        {
-          "name": "Delete cohort",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": { "raw": "{{base_url}}/admin/cohorts/{{cohort_id}}", "host": ["{{base_url}}"], "path": ["admin", "cohorts", "{{cohort_id}}"] }
-          }
-        },
-        {
-          "name": "Enroll student (staff)",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/admin/cohorts/{{cohort_id}}/enroll", "host": ["{{base_url}}"], "path": ["admin", "cohorts", "{{cohort_id}}", "enroll"] },
-            "body": { "mode": "raw", "raw": "{\n  \"student_id\": {{student_id}}\n}" }
-          }
-        },
-        {
-          "name": "List cohort students (roster)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": { "raw": "{{base_url}}/admin/cohorts/{{cohort_id}}/students", "host": ["{{base_url}}"], "path": ["admin", "cohorts", "{{cohort_id}}", "students"] }
-          }
-        },
-        {
-          "name": "Remove cohort student",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": { "raw": "{{base_url}}/admin/cohorts/{{cohort_id}}/students/{{student_id}}", "host": ["{{base_url}}"], "path": ["admin", "cohorts", "{{cohort_id}}", "students", "{{student_id}}"] }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Cohorts (public / student)",
-      "item": [
         {
           "name": "Browse cohorts (public)",
-          "request": {
-            "auth": { "type": "noauth" },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/cohorts?course_id=",
-              "host": ["{{base_url}}"],
-              "path": ["cohorts"],
-              "query": [{ "key": "course_id", "value": "", "disabled": true }]
-            }
-          }
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [],
+            "url": { "raw": "{{base_url}}/cohorts?course_id=", "host": ["{{base_url}}"], "path": ["cohorts"],
+              "query": [{ "key": "course_id", "value": "", "disabled": true }] } }
         },
         {
           "name": "Get cohort (public)",
-          "request": {
-            "auth": { "type": "noauth" },
-            "method": "GET",
-            "header": [],
-            "url": { "raw": "{{base_url}}/cohorts/{{cohort_id}}", "host": ["{{base_url}}"], "path": ["cohorts", "{{cohort_id}}"] }
-          }
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [],
+            "url": { "raw": "{{base_url}}/cohorts/{{cohort_id}}", "host": ["{{base_url}}"], "path": ["cohorts", "{{cohort_id}}"] } }
         },
         {
-          "name": "Enroll self (student)",
-          "request": {
-            "method": "POST",
-            "header": [],
+          "name": "Enroll self (student token)",
+          "request": { "method": "POST", "header": [],
             "url": { "raw": "{{base_url}}/cohorts/{{cohort_id}}/enroll", "host": ["{{base_url}}"], "path": ["cohorts", "{{cohort_id}}", "enroll"] },
-            "description": "Requires a STUDENT access token (log in as a student first). Cohort must be 'open' with seats available."
-          }
+            "description": "Needs a STUDENT access token. Cohort must be 'open' with seats available." }
         },
         {
           "name": "Cancel own enrollment",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": { "raw": "{{base_url}}/cohorts/{{cohort_id}}/enroll", "host": ["{{base_url}}"], "path": ["cohorts", "{{cohort_id}}", "enroll"] }
-          }
+          "request": { "method": "DELETE", "header": [],
+            "url": { "raw": "{{base_url}}/cohorts/{{cohort_id}}/enroll", "host": ["{{base_url}}"], "path": ["cohorts", "{{cohort_id}}", "enroll"] } }
         },
         {
-          "name": "My cohorts (student)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": { "raw": "{{base_url}}/me/cohorts", "host": ["{{base_url}}"], "path": ["me", "cohorts"] }
-          }
+          "name": "My cohorts",
+          "request": { "method": "GET", "header": [],
+            "url": { "raw": "{{base_url}}/me/cohorts", "host": ["{{base_url}}"], "path": ["me", "cohorts"] } }
         }
       ]
     },
     {
-      "name": "Schedules (хувиар)",
+      "name": "Teacher",
+      "description": "A teacher's own schedule (staff may view any teacher's).",
       "item": [
         {
-          "name": "Teacher schedule",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": { "raw": "{{base_url}}/teachers/{{teacher_id}}/schedule", "host": ["{{base_url}}"], "path": ["teachers", "{{teacher_id}}", "schedule"] },
-            "description": "The teacher themselves, or staff with cohort:manage / schedule:manage."
-          }
+          "name": "My schedule",
+          "request": { "method": "GET", "header": [],
+            "url": { "raw": "{{base_url}}/teachers/{{teacher_id}}/schedule", "host": ["{{base_url}}"], "path": ["teachers", "{{teacher_id}}", "schedule"] } }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "description": "Back-office CRUD. Each endpoint is permission-gated.",
+      "item": [
+        {
+          "name": "Students (student:manage)",
+          "item": [
+            { "name": "List students", "request": { "method": "GET", "header": [],
+              "url": { "raw": "{{base_url}}/admin/students?q=&limit=50&offset=0", "host": ["{{base_url}}"], "path": ["admin", "students"],
+                "query": [{ "key": "q", "value": "" }, { "key": "limit", "value": "50" }, { "key": "offset", "value": "0" }] } } },
+            { "name": "Get student", "request": { "method": "GET", "header": [],
+              "url": { "raw": "{{base_url}}/admin/students/{{student_id}}", "host": ["{{base_url}}"], "path": ["admin", "students", "{{student_id}}"] } } },
+            { "name": "Create student",
+              "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+                "var j = pm.response.json(); if (j.id) pm.collectionVariables.set('student_id', j.id);" ] } } ],
+              "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": { "raw": "{{base_url}}/admin/students", "host": ["{{base_url}}"], "path": ["admin", "students"] },
+                "body": { "mode": "raw", "raw": "{\n  \"email\": \"student1@example.mn\",\n  \"password\": \"TempPass123\",\n  \"first_name\": \"Бат\",\n  \"last_name\": \"Болд\",\n  \"phone\": \"99001122\",\n  \"birth_date\": \"2010-05-01\",\n  \"ui_mode\": \"kids\",\n  \"parent_name\": \"Дорж\",\n  \"parent_phone\": \"99887766\"\n}" } } },
+            { "name": "Update student (profile + account)", "request": { "method": "PATCH",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "url": { "raw": "{{base_url}}/admin/students/{{student_id}}", "host": ["{{base_url}}"], "path": ["admin", "students", "{{student_id}}"] },
+              "body": { "mode": "raw", "raw": "{\n  \"phone\": \"88887777\",\n  \"email\": \"student1.new@example.mn\",\n  \"is_active\": true\n}" } } },
+            { "name": "Reset student password", "request": { "method": "POST",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "url": { "raw": "{{base_url}}/admin/students/{{student_id}}/reset-password", "host": ["{{base_url}}"], "path": ["admin", "students", "{{student_id}}", "reset-password"] },
+              "body": { "mode": "raw", "raw": "{\n  \"new_password\": \"NewTempPass123\"\n}" } } },
+            { "name": "Delete student", "request": { "method": "DELETE", "header": [],
+              "url": { "raw": "{{base_url}}/admin/students/{{student_id}}", "host": ["{{base_url}}"], "path": ["admin", "students", "{{student_id}}"] } } }
+          ]
         },
         {
-          "name": "Classroom schedule",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": { "raw": "{{base_url}}/classrooms/{{classroom_id}}/schedule", "host": ["{{base_url}}"], "path": ["classrooms", "{{classroom_id}}", "schedule"] },
-            "description": "Staff with cohort:manage / classroom:manage."
-          }
+          "name": "Teachers (teacher:manage)",
+          "item": [
+            { "name": "List teachers", "request": { "method": "GET", "header": [],
+              "url": { "raw": "{{base_url}}/admin/teachers?q=&limit=50&offset=0", "host": ["{{base_url}}"], "path": ["admin", "teachers"],
+                "query": [{ "key": "q", "value": "" }, { "key": "limit", "value": "50" }, { "key": "offset", "value": "0" }] } } },
+            { "name": "Get teacher", "request": { "method": "GET", "header": [],
+              "url": { "raw": "{{base_url}}/admin/teachers/{{teacher_id}}", "host": ["{{base_url}}"], "path": ["admin", "teachers", "{{teacher_id}}"] } } },
+            { "name": "Create teacher",
+              "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+                "var j = pm.response.json(); if (j.id) pm.collectionVariables.set('teacher_id', j.id);" ] } } ],
+              "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": { "raw": "{{base_url}}/admin/teachers", "host": ["{{base_url}}"], "path": ["admin", "teachers"] },
+                "body": { "mode": "raw", "raw": "{\n  \"email\": \"teacher1@example.mn\",\n  \"password\": \"TempPass123\",\n  \"first_name\": \"Сараа\",\n  \"last_name\": \"Ганбат\",\n  \"phone\": \"95001122\",\n  \"bio\": \"AI mentor\"\n}" } } },
+            { "name": "Update teacher (profile + account)", "request": { "method": "PATCH",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "url": { "raw": "{{base_url}}/admin/teachers/{{teacher_id}}", "host": ["{{base_url}}"], "path": ["admin", "teachers", "{{teacher_id}}"] },
+              "body": { "mode": "raw", "raw": "{\n  \"bio\": \"Senior AI mentor\",\n  \"is_active\": true\n}" } } },
+            { "name": "Reset teacher password", "request": { "method": "POST",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "url": { "raw": "{{base_url}}/admin/teachers/{{teacher_id}}/reset-password", "host": ["{{base_url}}"], "path": ["admin", "teachers", "{{teacher_id}}", "reset-password"] },
+              "body": { "mode": "raw", "raw": "{\n  \"new_password\": \"NewTempPass123\"\n}" } } },
+            { "name": "Delete teacher", "request": { "method": "DELETE", "header": [],
+              "url": { "raw": "{{base_url}}/admin/teachers/{{teacher_id}}", "host": ["{{base_url}}"], "path": ["admin", "teachers", "{{teacher_id}}"] } } }
+          ]
         },
         {
-          "name": "All teachers (period overview)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/admin/schedule/teachers?from=2026-08-01&to=2026-08-31&available=",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "schedule", "teachers"],
-              "query": [
-                { "key": "from", "value": "2026-08-01", "description": "YYYY-MM-DD (must pair with 'to'); omit both for all-time" },
-                { "key": "to", "value": "2026-08-31" },
-                { "key": "available", "value": "", "description": "true = only teachers free in the period", "disabled": true }
-              ]
-            },
-            "description": "Every teacher + the cohorts they're assigned to in the period (busy/free). schedule:manage (sales_enrollment + super_admin)."
-          }
+          "name": "Classrooms (super_admin)",
+          "item": [
+            { "name": "List classrooms", "request": { "method": "GET", "header": [],
+              "url": { "raw": "{{base_url}}/admin/classrooms?q=&active=", "host": ["{{base_url}}"], "path": ["admin", "classrooms"],
+                "query": [{ "key": "q", "value": "", "disabled": true }, { "key": "active", "value": "", "description": "true | false", "disabled": true }] } } },
+            { "name": "Get classroom", "request": { "method": "GET", "header": [],
+              "url": { "raw": "{{base_url}}/admin/classrooms/{{classroom_id}}", "host": ["{{base_url}}"], "path": ["admin", "classrooms", "{{classroom_id}}"] } } },
+            { "name": "Create classroom",
+              "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+                "var j = pm.response.json(); if (j.id) pm.collectionVariables.set('classroom_id', j.id);" ] } } ],
+              "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": { "raw": "{{base_url}}/admin/classrooms", "host": ["{{base_url}}"], "path": ["admin", "classrooms"] },
+                "body": { "mode": "raw", "raw": "{\n  \"name\": \"Room 301\",\n  \"center_name\": \"AI Academy Central\",\n  \"location\": \"Sukhbaatar district, bldg 5\",\n  \"capacity\": 30,\n  \"floor\": \"3\",\n  \"equipment\": [\"projector\", \"30 PCs\"],\n  \"notes\": \"corner room\"\n}" } } },
+            { "name": "Update classroom", "request": { "method": "PATCH",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "url": { "raw": "{{base_url}}/admin/classrooms/{{classroom_id}}", "host": ["{{base_url}}"], "path": ["admin", "classrooms", "{{classroom_id}}"] },
+              "body": { "mode": "raw", "raw": "{\n  \"capacity\": 25,\n  \"is_active\": true\n}" } } },
+            { "name": "Delete classroom", "request": { "method": "DELETE", "header": [],
+              "url": { "raw": "{{base_url}}/admin/classrooms/{{classroom_id}}", "host": ["{{base_url}}"], "path": ["admin", "classrooms", "{{classroom_id}}"] } } }
+          ]
         },
         {
-          "name": "All classrooms (period overview)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/admin/schedule/classrooms?from=2026-08-01&to=2026-08-31&available=",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "schedule", "classrooms"],
-              "query": [
-                { "key": "from", "value": "2026-08-01", "description": "YYYY-MM-DD (must pair with 'to'); omit both for all-time" },
-                { "key": "to", "value": "2026-08-31" },
-                { "key": "available", "value": "", "description": "true = only classrooms free in the period", "disabled": true }
-              ]
-            },
-            "description": "Every classroom + the cohorts booked in the period (busy/free)."
-          }
+          "name": "Cohorts (cohort:manage)",
+          "item": [
+            { "name": "List cohorts", "request": { "method": "GET", "header": [],
+              "url": { "raw": "{{base_url}}/admin/cohorts?status=&course_id=&teacher_id=&classroom_id=", "host": ["{{base_url}}"], "path": ["admin", "cohorts"],
+                "query": [
+                  { "key": "status", "value": "", "description": "draft|open|closed", "disabled": true },
+                  { "key": "course_id", "value": "", "disabled": true },
+                  { "key": "teacher_id", "value": "", "disabled": true },
+                  { "key": "classroom_id", "value": "", "disabled": true }] } } },
+            { "name": "Get cohort", "request": { "method": "GET", "header": [],
+              "url": { "raw": "{{base_url}}/admin/cohorts/{{cohort_id}}", "host": ["{{base_url}}"], "path": ["admin", "cohorts", "{{cohort_id}}"] } } },
+            { "name": "Create cohort",
+              "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+                "var j = pm.response.json(); if (j.id) pm.collectionVariables.set('cohort_id', j.id);" ] } } ],
+              "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": { "raw": "{{base_url}}/admin/cohorts", "host": ["{{base_url}}"], "path": ["admin", "cohorts"] },
+                "body": { "mode": "raw", "raw": "{\n  \"course_id\": {{course_id}},\n  \"name\": \"Corporate Leaders 2026-08\",\n  \"start_date\": \"2026-08-06\",\n  \"end_date\": \"2026-10-06\",\n  \"graduation_date\": \"2026-10-10\",\n  \"teacher_id\": {{teacher_id}},\n  \"classroom_id\": {{classroom_id}},\n  \"meeting_days\": [\"mon\", \"wed\"],\n  \"start_time\": \"18:00\",\n  \"end_time\": \"20:00\",\n  \"capacity\": 20,\n  \"status\": \"open\"\n}" },
+                "description": "meeting_days (mon..sun) + start_time/end_time (HH:MM). Overlapping date+weekday+time on the same teacher/classroom returns 409 (teacher_double_booked / classroom_double_booked)." } },
+            { "name": "Update cohort", "request": { "method": "PATCH",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "url": { "raw": "{{base_url}}/admin/cohorts/{{cohort_id}}", "host": ["{{base_url}}"], "path": ["admin", "cohorts", "{{cohort_id}}"] },
+              "body": { "mode": "raw", "raw": "{\n  \"status\": \"closed\"\n}" } } },
+            { "name": "Delete cohort", "request": { "method": "DELETE", "header": [],
+              "url": { "raw": "{{base_url}}/admin/cohorts/{{cohort_id}}", "host": ["{{base_url}}"], "path": ["admin", "cohorts", "{{cohort_id}}"] } } },
+            { "name": "Enroll student (staff)", "request": { "method": "POST",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "url": { "raw": "{{base_url}}/admin/cohorts/{{cohort_id}}/enroll", "host": ["{{base_url}}"], "path": ["admin", "cohorts", "{{cohort_id}}", "enroll"] },
+              "body": { "mode": "raw", "raw": "{\n  \"student_id\": {{student_id}}\n}" } } },
+            { "name": "List cohort students (roster)", "request": { "method": "GET", "header": [],
+              "url": { "raw": "{{base_url}}/admin/cohorts/{{cohort_id}}/students", "host": ["{{base_url}}"], "path": ["admin", "cohorts", "{{cohort_id}}", "students"] } } },
+            { "name": "Remove cohort student", "request": { "method": "DELETE", "header": [],
+              "url": { "raw": "{{base_url}}/admin/cohorts/{{cohort_id}}/students/{{student_id}}", "host": ["{{base_url}}"], "path": ["admin", "cohorts", "{{cohort_id}}", "students", "{{student_id}}"] } } }
+          ]
+        },
+        {
+          "name": "Course content (course:edit)",
+          "item": [
+            { "name": "Create course",
+              "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+                "var j = pm.response.json();",
+                "if (j.id) pm.collectionVariables.set('course_id', j.id);",
+                "if (j.slug) pm.collectionVariables.set('course_slug', j.slug);" ] } } ],
+              "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": { "raw": "{{base_url}}/courses", "host": ["{{base_url}}"], "path": ["courses"] },
+                "body": { "mode": "raw", "raw": "{\n  \"slug\": \"summer-bootcamp-2026\",\n  \"title_mn\": \"Зуны бүтээлч кэмп\",\n  \"title_en\": \"Summer Bootcamp\",\n  \"tagline_mn\": \"3 долоо хоногийн эрчимжүүлсэн\",\n  \"category\": \"bootcamp\",\n  \"level\": \"junior\",\n  \"status\": \"draft\",\n  \"target_audience\": \"Junior · Нас 10-18\",\n  \"age_min\": 10,\n  \"age_max\": 18,\n  \"start_date\": \"2026-06-01\",\n  \"end_date\": \"2026-06-21\",\n  \"duration_weeks\": 3,\n  \"duration_label\": \"3 долоо хоног\",\n  \"sort_order\": 1,\n  \"format\": \"in_person\",\n  \"price_amount\": 1200000,\n  \"currency\": \"MNT\",\n  \"discount_percent\": 50,\n  \"description_mn\": \"...\",\n  \"has_exam\": false,\n  \"has_final_project\": true,\n  \"final_project_type\": \"showcase\",\n  \"has_attendance\": true,\n  \"attendance_method\": \"qr_scan\",\n  \"google_classroom_url\": \"https://classroom.google.com/...\",\n  \"curriculum\": [\"Week 1\", \"Week 2\", \"Week 3\"],\n  \"whats_included\": [\"Laptop\", \"Certificate\"]\n}" },
+                "description": "New courses default to status=draft and are hidden from the public 'Browse courses'. Set status=open (or PATCH) to publish." } },
+            { "name": "List courses (admin — incl. drafts)", "request": { "method": "GET", "header": [],
+              "url": { "raw": "{{base_url}}/courses?status=draft", "host": ["{{base_url}}"], "path": ["courses"],
+                "query": [{ "key": "status", "value": "draft", "description": "draft|open|closed; omit (disable) for all. Staff-only sees drafts." }] },
+              "description": "Authenticated list (sends the token) so staff can see drafts." } },
+            { "name": "Update course", "request": { "method": "PATCH",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "url": { "raw": "{{base_url}}/courses/{{course_id}}", "host": ["{{base_url}}"], "path": ["courses", "{{course_id}}"] },
+              "body": { "mode": "raw", "raw": "{\n  \"status\": \"open\",\n  \"discount_percent\": 20\n}" } } },
+            { "name": "Delete course", "request": { "method": "DELETE", "header": [],
+              "url": { "raw": "{{base_url}}/courses/{{course_id}}", "host": ["{{base_url}}"], "path": ["courses", "{{course_id}}"] },
+              "description": "Returns 409 course_in_use if a cohort still references it." } },
+            { "name": "Upload template (cert|contract)", "request": { "method": "PUT", "header": [],
+              "url": { "raw": "{{base_url}}/courses/{{course_id}}/templates/cert", "host": ["{{base_url}}"], "path": ["courses", "{{course_id}}", "templates", "cert"] },
+              "body": { "mode": "formdata", "formdata": [
+                { "key": "file", "type": "file", "src": [], "description": ".pdf/.doc/.docx, max 15MB. Change 'cert' to 'contract' in the URL for the contract template." } ] } } },
+            { "name": "Download template (cert|contract)", "request": { "method": "GET", "header": [],
+              "url": { "raw": "{{base_url}}/courses/{{course_id}}/templates/cert", "host": ["{{base_url}}"], "path": ["courses", "{{course_id}}", "templates", "cert"] } } },
+            { "name": "Delete template (cert|contract)", "request": { "method": "DELETE", "header": [],
+              "url": { "raw": "{{base_url}}/courses/{{course_id}}/templates/cert", "host": ["{{base_url}}"], "path": ["courses", "{{course_id}}", "templates", "cert"] } } }
+          ]
+        },
+        {
+          "name": "Schedules (schedule:manage)",
+          "item": [
+            { "name": "All teachers (period overview)", "request": { "method": "GET", "header": [],
+              "url": { "raw": "{{base_url}}/admin/schedule/teachers?from=2026-08-01&to=2026-08-31&available=", "host": ["{{base_url}}"], "path": ["admin", "schedule", "teachers"],
+                "query": [
+                  { "key": "from", "value": "2026-08-01", "description": "YYYY-MM-DD (pair with 'to'); omit both for all-time" },
+                  { "key": "to", "value": "2026-08-31" },
+                  { "key": "available", "value": "", "description": "true = only teachers free in the period", "disabled": true }] } } },
+            { "name": "All classrooms (period overview)", "request": { "method": "GET", "header": [],
+              "url": { "raw": "{{base_url}}/admin/schedule/classrooms?from=2026-08-01&to=2026-08-31&available=", "host": ["{{base_url}}"], "path": ["admin", "schedule", "classrooms"],
+                "query": [
+                  { "key": "from", "value": "2026-08-01" },
+                  { "key": "to", "value": "2026-08-31" },
+                  { "key": "available", "value": "", "description": "true = only free classrooms", "disabled": true }] } } },
+            { "name": "Classroom schedule (single)", "request": { "method": "GET", "header": [],
+              "url": { "raw": "{{base_url}}/classrooms/{{classroom_id}}/schedule", "host": ["{{base_url}}"], "path": ["classrooms", "{{classroom_id}}", "schedule"] } } }
+          ]
         }
       ]
     },
     {
       "name": "Health",
       "item": [
-        {
-          "name": "Service info (root)",
-          "request": {
-            "auth": { "type": "noauth" },
-            "method": "GET",
-            "header": [],
-            "url": { "raw": "{{base_url}}/", "host": ["{{base_url}}"], "path": [""] }
-          }
-        },
-        {
-          "name": "Health check",
-          "request": {
-            "auth": { "type": "noauth" },
-            "method": "GET",
-            "header": [],
-            "url": { "raw": "{{base_url}}/health", "host": ["{{base_url}}"], "path": ["health"] }
-          }
-        }
+        { "name": "Service info (root)", "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [],
+          "url": { "raw": "{{base_url}}/", "host": ["{{base_url}}"], "path": [""] } } },
+        { "name": "Health check", "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [],
+          "url": { "raw": "{{base_url}}/health", "host": ["{{base_url}}"], "path": ["health"] } } }
       ]
     }
   ]
