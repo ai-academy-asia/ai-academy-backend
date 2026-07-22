@@ -5,6 +5,7 @@
 - Public: browse open cohorts.
 - Students self-enroll; staff (enrollment:create) enroll on their behalf.
 """
+import re
 from datetime import date
 
 from flask import Blueprint, g, jsonify, request
@@ -26,8 +27,11 @@ from app.routes.common import json_fail
 bp = Blueprint("cohorts", __name__)
 
 _WRITABLE = {"course_id", "parent_cohort_id", "name", "teacher_id", "classroom_id",
-             "capacity", "status", "schedule_note"}
+             "capacity", "status", "meeting_days", "start_time", "end_time", "schedule_note"}
 _DATE_FIELDS = {"start_date", "end_date", "graduation_date"}
+
+WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
+_TIME_RE = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 
 
 # ---------------------------------------------------------------- helpers
@@ -65,42 +69,72 @@ def _validate(cohort):
         json_fail(400, "invalid_classroom_id")
     if cohort.start_date and cohort.end_date and cohort.end_date < cohort.start_date:
         json_fail(400, "end_before_start")
+    if cohort.meeting_days is not None:
+        if not isinstance(cohort.meeting_days, list) or any(d not in WEEKDAYS for d in cohort.meeting_days):
+            json_fail(400, "invalid_meeting_days", valid=list(WEEKDAYS))
+    for field in ("start_time", "end_time"):
+        val = getattr(cohort, field)
+        if val and not _TIME_RE.match(val):
+            json_fail(400, "invalid_time", field=field)
+    if cohort.start_time and cohort.end_time and cohort.end_time <= cohort.start_time:
+        json_fail(400, "end_time_before_start")
 
 
-def _overlap_query(column, value, cohort):
-    """Cohorts sharing teacher/classroom whose date range overlaps this one."""
-    q = Cohort.query.filter(column == value)
+def _days_overlap(a_days, b_days):
+    # Unknown days on either side -> assume they can clash (fail safe).
+    if not a_days or not b_days:
+        return True
+    return bool(set(a_days) & set(b_days))
+
+
+def _time_overlap(a_start, a_end, b_start, b_end):
+    # Unknown times -> assume overlap (fail safe). "HH:MM" compares lexically.
+    if not (a_start and a_end and b_start and b_end):
+        return True
+    return a_start < b_end and a_end > b_start
+
+
+def _find_conflict(column, value, cohort):
+    """A cohort sharing this teacher/classroom whose date range, weekday, AND
+    time all overlap. Requires this cohort to have a date range."""
+    if not (cohort.start_date and cohort.end_date):
+        return None
+    q = Cohort.query.filter(
+        column == value,
+        Cohort.start_date.isnot(None), Cohort.end_date.isnot(None),
+        Cohort.start_date <= cohort.end_date,
+        Cohort.end_date >= cohort.start_date,
+    )
     if cohort.id:
         q = q.filter(Cohort.id != cohort.id)
-    # Only date-bounded cohorts can conflict; overlap = start<=other.end & end>=other.start.
-    if cohort.start_date and cohort.end_date:
-        q = q.filter(
-            Cohort.start_date.isnot(None),
-            Cohort.end_date.isnot(None),
-            Cohort.start_date <= cohort.end_date,
-            Cohort.end_date >= cohort.start_date,
-        )
-    else:
-        return None
-    return q.first()
+    for other in q.all():
+        if _days_overlap(cohort.meeting_days, other.meeting_days) and _time_overlap(
+            cohort.start_time, cohort.end_time, other.start_time, other.end_time
+        ):
+            return other
+    return None
+
+
+def _conflict_payload(clash):
+    return {
+        "cohort_id": clash.id, "name": clash.name,
+        "start_date": clash.start_date.isoformat() if clash.start_date else None,
+        "end_date": clash.end_date.isoformat() if clash.end_date else None,
+        "meeting_days": clash.meeting_days,
+        "start_time": clash.start_time, "end_time": clash.end_time,
+    }
 
 
 def _check_conflicts(cohort):
-    """Block double-booking a teacher or classroom on overlapping date ranges."""
+    """Block double-booking a teacher/classroom on overlapping date+weekday+time."""
     if cohort.teacher_id:
-        clash = _overlap_query(Cohort.teacher_id, cohort.teacher_id, cohort)
+        clash = _find_conflict(Cohort.teacher_id, cohort.teacher_id, cohort)
         if clash is not None:
-            json_fail(409, "teacher_double_booked",
-                      conflict={"cohort_id": clash.id, "name": clash.name,
-                                "start_date": clash.start_date.isoformat(),
-                                "end_date": clash.end_date.isoformat()})
+            json_fail(409, "teacher_double_booked", conflict=_conflict_payload(clash))
     if cohort.classroom_id:
-        clash = _overlap_query(Cohort.classroom_id, cohort.classroom_id, cohort)
+        clash = _find_conflict(Cohort.classroom_id, cohort.classroom_id, cohort)
         if clash is not None:
-            json_fail(409, "classroom_double_booked",
-                      conflict={"cohort_id": clash.id, "name": clash.name,
-                                "start_date": clash.start_date.isoformat(),
-                                "end_date": clash.end_date.isoformat()})
+            json_fail(409, "classroom_double_booked", conflict=_conflict_payload(clash))
 
 
 def _get_or_404(cohort_id):

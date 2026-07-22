@@ -31,7 +31,11 @@ class Cohort(db.Model):
 
     capacity = db.Column(db.Integer)
     status = db.Column(db.String(20), nullable=False, default="draft", index=True)
-    schedule_note = db.Column(db.Text)  # free-text meeting times (e.g. "Mon/Wed 18:00-20:00")
+    # Weekly meeting time (same time on each listed day).
+    meeting_days = db.Column(db.JSON)          # e.g. ["mon", "wed"]
+    start_time = db.Column(db.String(5))       # "HH:MM"
+    end_time = db.Column(db.String(5))         # "HH:MM"
+    schedule_note = db.Column(db.Text)  # optional free-text note
 
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(
@@ -80,6 +84,9 @@ class Cohort(db.Model):
             "start_date": self.start_date.isoformat() if self.start_date else None,
             "end_date": self.end_date.isoformat() if self.end_date else None,
             "graduation_date": self.graduation_date.isoformat() if self.graduation_date else None,
+            "meeting_days": self.meeting_days,
+            "start_time": self.start_time,
+            "end_time": self.end_time,
             "schedule_note": self.schedule_note,
             "capacity": self.capacity,
             "enrolled_count": self.enrolled_count,
