@@ -40,3 +40,5 @@ instance/
 
 # Postgres docker volume (if bind-mounted locally)
 pgdata/
+
+INFRASTRUCTURE.md

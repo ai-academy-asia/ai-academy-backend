@@ -20,3 +20,23 @@ class Config:
     SQLALCHEMY_DATABASE_URI = _build_database_url()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
+
+    # --- Auth / JWT ---
+    # Falls back to SECRET_KEY if JWT_SECRET is not set separately.
+    JWT_SECRET = os.getenv("JWT_SECRET") or SECRET_KEY
+    JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+    # Access-token lifetime in seconds. Kept short (1h) because refresh tokens
+    # exist — a long-lived stateless access token would undermine the shorter
+    # staff refresh window.
+    JWT_ACCESS_TTL = int(os.getenv("JWT_ACCESS_TTL", str(60 * 60)))
+
+    # --- Refresh tokens (DB-backed, opaque, rotated) ---
+    # Learners (student/teacher) get a long refresh window; staff get a short
+    # one because they can act on money data. Sliding window (each rotate resets
+    # the clock). All in seconds.
+    REFRESH_TTL_STUDENT = int(os.getenv("REFRESH_TTL_STUDENT", str(30 * 24 * 60 * 60)))
+    REFRESH_TTL_TEACHER = int(os.getenv("REFRESH_TTL_TEACHER", str(30 * 24 * 60 * 60)))
+    REFRESH_TTL_STAFF = int(os.getenv("REFRESH_TTL_STAFF", str(12 * 60 * 60)))
+
+    # Minimum length enforced on password changes.
+    PASSWORD_MIN_LENGTH = int(os.getenv("PASSWORD_MIN_LENGTH", "8"))
