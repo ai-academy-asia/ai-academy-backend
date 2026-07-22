@@ -24,6 +24,7 @@ def create_app(config_class: type = Config) -> Flask:
     # Register blueprints
     from .routes.admin_users import bp as admin_users_bp
     from .routes.auth import bp as auth_bp
+    from .routes.classrooms import bp as classrooms_bp
     from .routes.courses import bp as courses_bp
     from .routes.health import bp as health_bp
 
@@ -31,6 +32,7 @@ def create_app(config_class: type = Config) -> Flask:
     app.register_blueprint(auth_bp)
     app.register_blueprint(courses_bp)
     app.register_blueprint(admin_users_bp)
+    app.register_blueprint(classrooms_bp)
 
     # CLI commands (flask auth create-staff ...)
     from .cli import register_cli

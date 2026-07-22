@@ -15,6 +15,10 @@ route decorators stay unchanged.
 
 WILDCARD = "*"
 
+# super_admin-only capabilities: granted to no role below, so only super_admin
+# passes (via the wildcard). Listed here for discoverability.
+#   - classroom:manage  (create/update/delete хичээлийн танхим)
+
 PERMISSIONS_BY_ROLE = {
     "super_admin": {WILDCARD},
     "finance": {
