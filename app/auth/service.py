@@ -20,7 +20,7 @@ def email_exists(email: str) -> bool:
     return AuthAccount.get_by_email(email) is not None
 
 
-def _provision(profile, *, email, password, actor_type, role, must_change_password):
+def provision_account(profile, *, email, password, actor_type, role, must_change_password):
     """Create a profile row + its auth account in one transaction.
 
     ``profile`` is an unsaved Student/Teacher/Staff instance; its id is assigned
@@ -51,7 +51,7 @@ def _provision(profile, *, email, password, actor_type, role, must_change_passwo
 def create_student_account(*, email, password, first_name, last_name=None,
                            phone=None, must_change_password=True):
     profile = Student(first_name=first_name, last_name=last_name, phone=phone)
-    return _provision(
+    return provision_account(
         profile, email=email, password=password, actor_type=ACTOR_STUDENT,
         role=ACTOR_STUDENT, must_change_password=must_change_password,
     )
@@ -60,7 +60,7 @@ def create_student_account(*, email, password, first_name, last_name=None,
 def create_teacher_account(*, email, password, first_name, last_name=None,
                            phone=None, must_change_password=True):
     profile = Teacher(first_name=first_name, last_name=last_name, phone=phone)
-    return _provision(
+    return provision_account(
         profile, email=email, password=password, actor_type=ACTOR_TEACHER,
         role=ACTOR_TEACHER, must_change_password=must_change_password,
     )
@@ -71,7 +71,7 @@ def create_staff_account(*, email, password, first_name, last_name=None,
     """Create a Staff profile + auth account. The staff role doubles as the
     account's RBAC role."""
     profile = Staff(first_name=first_name, last_name=last_name, phone=phone, role=role)
-    return _provision(
+    return provision_account(
         profile, email=email, password=password, actor_type=ACTOR_STAFF,
         role=role, must_change_password=must_change_password,
     )

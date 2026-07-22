@@ -30,6 +30,8 @@ PERMISSIONS_BY_ROLE = {
         "enrollment:read",
         "cohort:manage",
         "student:assign",
+        "student:manage",
+        "teacher:manage",
         "schedule:manage",
         "swap:approve",
     },

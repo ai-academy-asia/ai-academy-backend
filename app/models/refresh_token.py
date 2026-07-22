@@ -29,7 +29,12 @@ class RefreshToken(db.Model):
     replaced_by_id = db.Column(db.Integer, db.ForeignKey("refresh_tokens.id"))
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
-    account = db.relationship("AuthAccount", backref=db.backref("refresh_tokens", lazy="dynamic"))
+    # passive_deletes: rely on the DB's ON DELETE CASCADE when the account is
+    # deleted, instead of SQLAlchemy trying to NULL the (NOT NULL) FK first.
+    account = db.relationship(
+        "AuthAccount",
+        backref=db.backref("refresh_tokens", lazy="dynamic", passive_deletes=True),
+    )
 
     @property
     def is_active(self) -> bool:
