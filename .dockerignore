@@ -1,0 +1,11 @@
+.venv/
+.git/
+__pycache__/
+*.pyc
+*.pem
+*accessKeys*.csv
+*credentials*.csv
+CLAUDE.md
+.DS_Store
+pgadmin_data/
+pgdata/

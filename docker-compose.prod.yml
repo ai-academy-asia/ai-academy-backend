@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    image: aiaa-backend:latest
+    container_name: aiaa-app
+    restart: unless-stopped
+    env_file: .env
+    # Bind to localhost only — nginx on the host is the public entrypoint.
+    ports:
+      - "127.0.0.1:8000:8000"
