@@ -40,3 +40,12 @@ class Config:
 
     # Minimum length enforced on password changes.
     PASSWORD_MIN_LENGTH = int(os.getenv("PASSWORD_MIN_LENGTH", "8"))
+
+    # --- S3 (cert / contract template files) ---
+    # boto3 uses its default credential chain (env keys, shared profile, or the
+    # EC2 instance role in prod). Only the bucket/region need configuring here.
+    AWS_REGION = os.getenv("AWS_REGION", "ap-northeast-1")
+    S3_BUCKET = os.getenv("S3_BUCKET", "aiaa-templates-748560966884")
+    S3_PREFIX = os.getenv("S3_PREFIX", "")  # optional key prefix
+    # Max upload size for a template file (bytes). Default 15 MB.
+    MAX_TEMPLATE_BYTES = int(os.getenv("MAX_TEMPLATE_BYTES", str(15 * 1024 * 1024)))
