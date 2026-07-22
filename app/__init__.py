@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify
 
 from .config import Config
 from .extensions import db, migrate
@@ -21,22 +21,17 @@ def create_app(config_class: type = Config) -> Flask:
 
     register_auth_middleware(app)
 
-    # Register blueprints
-    from .routes.admin_users import bp as admin_users_bp
-    from .routes.auth import bp as auth_bp
-    from .routes.classrooms import bp as classrooms_bp
-    from .routes.cohorts import bp as cohorts_bp
-    from .routes.courses import bp as courses_bp
-    from .routes.health import bp as health_bp
-    from .routes.schedules import bp as schedules_bp
+    # Service-layer errors -> JSON responses
+    from .services.errors import ServiceError
 
-    app.register_blueprint(health_bp)
-    app.register_blueprint(auth_bp)
-    app.register_blueprint(courses_bp)
-    app.register_blueprint(admin_users_bp)
-    app.register_blueprint(classrooms_bp)
-    app.register_blueprint(cohorts_bp)
-    app.register_blueprint(schedules_bp)
+    @app.errorhandler(ServiceError)
+    def _handle_service_error(exc):  # noqa: ANN001
+        return jsonify(error=exc.code, **exc.extra), exc.status
+
+    # Register actor routers (health, auth, student, teacher, admin)
+    from .routes import register_blueprints
+
+    register_blueprints(app)
 
     # CLI commands (flask auth create-staff ...)
     from .cli import register_cli
