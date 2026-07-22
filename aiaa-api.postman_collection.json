@@ -640,6 +640,42 @@
             "url": { "raw": "{{base_url}}/classrooms/{{classroom_id}}/schedule", "host": ["{{base_url}}"], "path": ["classrooms", "{{classroom_id}}", "schedule"] },
             "description": "Staff with cohort:manage / classroom:manage."
           }
+        },
+        {
+          "name": "All teachers (period overview)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/schedule/teachers?from=2026-08-01&to=2026-08-31&available=",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "schedule", "teachers"],
+              "query": [
+                { "key": "from", "value": "2026-08-01", "description": "YYYY-MM-DD (must pair with 'to'); omit both for all-time" },
+                { "key": "to", "value": "2026-08-31" },
+                { "key": "available", "value": "", "description": "true = only teachers free in the period", "disabled": true }
+              ]
+            },
+            "description": "Every teacher + the cohorts they're assigned to in the period (busy/free). schedule:manage (sales_enrollment + super_admin)."
+          }
+        },
+        {
+          "name": "All classrooms (period overview)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/schedule/classrooms?from=2026-08-01&to=2026-08-31&available=",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "schedule", "classrooms"],
+              "query": [
+                { "key": "from", "value": "2026-08-01", "description": "YYYY-MM-DD (must pair with 'to'); omit both for all-time" },
+                { "key": "to", "value": "2026-08-31" },
+                { "key": "available", "value": "", "description": "true = only classrooms free in the period", "disabled": true }
+              ]
+            },
+            "description": "Every classroom + the cohorts booked in the period (busy/free)."
+          }
         }
       ]
     },
