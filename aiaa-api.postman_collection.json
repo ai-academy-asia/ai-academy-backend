@@ -683,6 +683,15 @@
       "name": "Health",
       "item": [
         {
+          "name": "Service info (root)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/", "host": ["{{base_url}}"], "path": [""] }
+          }
+        },
+        {
           "name": "Health check",
           "request": {
             "auth": { "type": "noauth" },
