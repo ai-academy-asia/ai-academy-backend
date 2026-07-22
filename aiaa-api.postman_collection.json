@@ -148,6 +148,24 @@
       "name": "Courses (admin · course:edit)",
       "item": [
         {
+          "name": "List courses (admin — incl. drafts)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/courses?status=draft",
+              "host": ["{{base_url}}"],
+              "path": ["courses"],
+              "query": [
+                { "key": "status", "value": "draft", "description": "draft | open | closed — OMIT (disable) to see ALL statuses. Only staff with course:edit see drafts; the public 'List courses' request never does.", "disabled": false },
+                { "key": "level", "value": "", "disabled": true },
+                { "key": "category", "value": "", "disabled": true }
+              ]
+            },
+            "description": "Authenticated list (sends Bearer token). A newly created course defaults to status=draft and is hidden from the public 'List courses'. Use this to see drafts, or publish via 'Update course' with {\"status\":\"open\"}."
+          }
+        },
+        {
           "name": "Create course",
           "event": [
             {
