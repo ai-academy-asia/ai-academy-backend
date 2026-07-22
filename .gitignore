@@ -16,12 +16,13 @@ env/
 *.env
 !.env.example
 
-# AWS credentials / secrets — NEVER commit
+# All keys & credentials live here — NEVER commit
+.secrets/
+
+# Extra safety nets (in case a key lands outside .secrets/)
 *accessKeys*.csv
 *credentials*.csv
 *.pem
-
-# SSH deploy keys — NEVER commit
 aiaa-deploy
 aiaa-deploy.pub
 

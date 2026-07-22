@@ -28,7 +28,7 @@ jobs:
           rsync -az --delete \
             -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes" \
             --exclude '.git' --exclude '.github' --exclude '.venv' \
-            --exclude '.env' --exclude '*.pem' --exclude 'aiaa-deploy*' \
+            --exclude '.secrets' --exclude '.env' --exclude '*.pem' \
             --exclude '*.csv' --exclude 'CLAUDE.md' --exclude '__pycache__' \
             ./ "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/ubuntu/aiaa-backend/"
 
