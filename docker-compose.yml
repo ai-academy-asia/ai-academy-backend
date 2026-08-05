@@ -14,6 +14,34 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
 
+  # ---- eBarimt: hourly push of issued receipts to the tax authority ----
+  # Its own container on purpose. Issuing a receipt is instant (PosAPI hands out
+  # a DDTD from a pre-allocated lottery pool), so this sendData flush is what
+  # actually transmits to the tax authority — it must run on a schedule. It can
+  # NOT live inside `app`: gunicorn serves 2 workers, so an in-process scheduler
+  # would fire the flush twice an hour.
+  ebarimt-sender:
+    profiles: ["prod"]
+    build: .
+    image: aiaa-backend:latest
+    container_name: aiaa-ebarimt-sender
+    restart: unless-stopped
+    env_file: .env
+    # Ticks on the hour boundary rather than every 3600s from boot, so a
+    # container restart doesn't permanently shift when the flush happens.
+    # A failed tick only logs — the next hour retries. Set
+    # EBARIMT_SEND_INTERVAL_SECONDS in .env to change the cadence.
+    command:
+      - sh
+      - -c
+      - |
+        interval="$${EBARIMT_SEND_INTERVAL_SECONDS:-3600}"
+        echo "[ebarimt-sender] started, interval=$${interval}s"
+        while true; do
+          flask ebarimt send-data || echo "[ebarimt-sender] tick failed; retrying next interval"
+          sleep $$(( interval - $$(date +%s) % interval ))
+        done
+
   # ---- Local dev database ----
   db:
     profiles: ["dev"]

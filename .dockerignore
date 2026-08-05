@@ -1,4 +1,7 @@
 .venv/
+# Runtime config is mounted by compose (env_file), never baked into the image.
+.env
+.env.*
 .git/
 __pycache__/
 *.pyc

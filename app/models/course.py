@@ -21,6 +21,10 @@ class Course(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     slug = db.Column(db.String(120), unique=True, nullable=False, index=True)
+    # Id this programme had in the legacy system. The marketing site's cards
+    # still carry it, so the public API answers to it as well as to our own id.
+    # NOT unique: one legacy course covered several of what we model separately.
+    legacy_course_id = db.Column(db.Integer, index=True)
 
     # --- classification / summary ---
     category = db.Column(db.String(80))          # e.g. "bootcamp", "online"

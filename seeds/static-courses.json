@@ -1,0 +1,1098 @@
+{
+  "_source": "ai-academy-web-legacy — app/[locale]/(main)/what-we-offer/data/spring-courses-data.ts + .../summer/data/summer-courses-data.ts, exported 2026-08-06",
+  "_note": "The site's hand-written programme cards, kept verbatim. Each entry is one RUN; entries sharing (title, type, format) are runs of the same course.  normalises them into Course + Cohort rows.",
+  "courses": [
+    {
+      "id": 9,
+      "num": 9,
+      "title": "AI Engineer",
+      "type": "adult",
+      "classType": "Оройн анги",
+      "age": "Насанд хүрэгч",
+      "format": "Танхим",
+      "startDate": "2026/05/14",
+      "endDate": "",
+      "day": "Пүрэв, Бямба",
+      "time": "Пү 18:30–20:00 / Бя 14:00–17:00",
+      "totalClasses": 0,
+      "duration": "7 сар",
+      "fee": "17,900,000₮",
+      "discount": "0%",
+      "finalFee": "17,900,000₮",
+      "maxStudents": 30,
+      "enrolled": 0,
+      "tags": [
+        "tag-adult",
+        "tag-inclass",
+        "tag-evening"
+      ],
+      "tagLabels": [
+        "Adult",
+        "Танхим",
+        "Оройн"
+      ],
+      "features": [
+        "Онол биш, өөрийн гэсэн AI төслийг эхнээс нь дуустал хөгжүүлнэ",
+        "Олон улсад магадлан итгэмжлэгдсэн Сертификат",
+        "Python, Machine Learning, Deep Learning-ийг системтэйгээр эзэмшинэ",
+        "Зах зээлийн хамгийн үнэ цэнтэй мэргэжилтэн болно"
+      ],
+      "badge": "🏫",
+      "activeDays": [
+        "Пү",
+        "Бя"
+      ],
+      "backendCourseId": 51,
+      "backendScheduleId": 33,
+      "promoScheduleId": 53,
+      "advancePaymentPercent": 20,
+      "promoCode": "AIACADEMY10",
+      "promoDiscountPercent": 10,
+      "cohort": "spring"
+    },
+    {
+      "id": 7,
+      "num": 7,
+      "title": "AI 101 Junior Online",
+      "type": "junior-online",
+      "classType": "Оройн анги",
+      "age": "14–18",
+      "format": "Онлайн",
+      "startDate": "2026/04/10",
+      "endDate": "2026/04/15",
+      "day": "Лхагва, Баасан",
+      "time": "19:00–20:30",
+      "totalClasses": 16,
+      "duration": "2 сар",
+      "fee": "2,000,000₮",
+      "discount": "50%",
+      "finalFee": "1,000,000₮",
+      "maxStudents": 100,
+      "enrolled": 100,
+      "tags": [
+        "tag-junior",
+        "tag-online",
+        "tag-evening"
+      ],
+      "tagLabels": [
+        "Junior",
+        "Онлайн",
+        "Оройн"
+      ],
+      "features": [
+        "Хаанаас ч хамрагдах боломжтой",
+        "AI, машин сургалт, нейрон сүлжээний үндэс",
+        "Бодит төсөл дээр суралцана",
+        "Сертификат + Portfolio"
+      ],
+      "badge": "💻",
+      "activeDays": [
+        "Лх",
+        "Ба"
+      ],
+      "backendCourseId": 46,
+      "backendScheduleId": 28,
+      "cohort": "spring"
+    },
+    {
+      "id": 8,
+      "num": 8,
+      "title": "AI 101 Adult Online",
+      "type": "adult",
+      "classType": "Өглөөний анги",
+      "age": "Насанд хүрэгч",
+      "format": "Онлайн",
+      "startDate": "2026/05/20",
+      "endDate": "",
+      "day": "Да, Лхагва, Баасан",
+      "time": "07:30–09:00",
+      "totalClasses": 12,
+      "duration": "1 сар",
+      "fee": "2,000,000₮",
+      "discount": "50%",
+      "finalFee": "1,000,000₮",
+      "maxStudents": 100,
+      "enrolled": 63,
+      "tags": [
+        "tag-adult",
+        "tag-online",
+        "tag-morning"
+      ],
+      "tagLabels": [
+        "Adult",
+        "Онлайн",
+        "Өглөө"
+      ],
+      "features": [
+        "Хаанаас ч хамрагдах боломжтой",
+        "AI, машин сургалт, нейрон сүлжээний үндэс",
+        "Бодит төсөл дээр суралцана",
+        "Сертификат + Portfolio"
+      ],
+      "badge": "💻",
+      "activeDays": [
+        "Да",
+        "Лх",
+        "Ба"
+      ],
+      "backendCourseId": 49,
+      "backendScheduleId": 31,
+      "cohort": "spring"
+    },
+    {
+      "id": 11,
+      "num": 11,
+      "title": "AI 101 Online",
+      "type": "adult",
+      "classType": "Өглөөний анги",
+      "age": "Насанд хүрэгч",
+      "format": "Онлайн",
+      "startDate": "2026/07/20",
+      "endDate": "2026/08/14",
+      "day": "Да, Лхагва, Баасан",
+      "time": "07:30–09:00",
+      "totalClasses": 12,
+      "duration": "1 сар",
+      "fee": "1,000,000₮",
+      "discount": "0%",
+      "finalFee": "1,000,000₮",
+      "maxStudents": 100,
+      "enrolled": 0,
+      "tags": [
+        "tag-adult",
+        "tag-online",
+        "tag-morning"
+      ],
+      "tagLabels": [
+        "Adult",
+        "Онлайн",
+        "Өглөө"
+      ],
+      "features": [
+        "100% Онлайн, LIVE (Google Classroom)",
+        "Хаанаас ч хамрагдах боломжтой",
+        "AI, машин сургалт, нейрон сүлжээний үндэс",
+        "Бодит төсөл дээр суралцана",
+        "Сертификат + Portfolio"
+      ],
+      "badge": "🚀",
+      "activeDays": [
+        "Да",
+        "Лх",
+        "Ба"
+      ],
+      "backendCourseId": 49,
+      "backendScheduleId": 55,
+      "cohort": "spring"
+    },
+    {
+      "id": 12,
+      "num": 12,
+      "title": "Corporate Leaders AI",
+      "type": "adult",
+      "classType": "Оройн анги",
+      "age": "Насанд хүрэгч",
+      "format": "Танхим",
+      "startDate": "2026/08/06",
+      "endDate": "2026/10/04",
+      "day": "Мя, Пүрэв",
+      "time": "18:30–20:00",
+      "totalClasses": 16,
+      "duration": "2 сар",
+      "fee": "$2,000",
+      "discount": "20%",
+      "finalFee": "$1,600",
+      "maxStudents": 20,
+      "enrolled": 0,
+      "tags": [
+        "tag-adult",
+        "tag-inclass",
+        "tag-evening"
+      ],
+      "tagLabels": [
+        "Adult",
+        "Танхим",
+        "Оройн"
+      ],
+      "features": [
+        "Удирдлагуудад зориулсан AI стратеги, засаглал болон бодит хэрэглээний хөтөлбөр",
+        "Vibe Coding & AI Agents-ээр код бичихгүйгээр прототип бүтээх",
+        "Бизнесийн өдөр тутмын үйлдлийг автоматжуулах",
+        "Capstone: Бизнест тулгамдсан асуудлыг шийдсэн AI прототип (MVP)"
+      ],
+      "badge": "💼",
+      "activeDays": [
+        "Мя",
+        "Пу"
+      ],
+      "backendCourseId": 50,
+      "backendScheduleId": 56,
+      "depositScheduleId": 57,
+      "advancePaymentPercent": 30,
+      "cohort": "spring"
+    },
+    {
+      "id": 13,
+      "num": 13,
+      "title": "AI Engineer",
+      "type": "adult",
+      "classType": "Оройн анги",
+      "age": "Насанд хүрэгч",
+      "format": "Танхим",
+      "startDate": "2026/08/17",
+      "endDate": "2027/03/17",
+      "day": "Да, Лхагва, Баасан",
+      "time": "18:30–20:00",
+      "totalClasses": 0,
+      "duration": "7 сар",
+      "fee": "17,900,000₮",
+      "discount": "0%",
+      "finalFee": "17,900,000₮",
+      "maxStudents": 30,
+      "enrolled": 0,
+      "tags": [
+        "tag-adult",
+        "tag-inclass",
+        "tag-evening"
+      ],
+      "tagLabels": [
+        "Adult",
+        "Танхим",
+        "Оройн"
+      ],
+      "features": [
+        "Онол биш, өөрийн гэсэн AI төслийг эхнээс нь дуустал хөгжүүлнэ",
+        "Олон улсад магадлан итгэмжлэгдсэн Сертификат",
+        "Python, Machine Learning, Deep Learning-ийг системтэйгээр эзэмшинэ",
+        "Зах зээлийн хамгийн үнэ цэнтэй мэргэжилтэн болно"
+      ],
+      "badge": "⚡",
+      "activeDays": [
+        "Да",
+        "Лх",
+        "Ба"
+      ],
+      "backendCourseId": 51,
+      "backendScheduleId": 58,
+      "depositScheduleId": 59,
+      "advancePaymentPercent": 20,
+      "cohort": "spring"
+    },
+    {
+      "id": 1,
+      "num": 1,
+      "title": "Junior AI Engineer",
+      "type": "junior-inclass",
+      "classType": "Оройн анги",
+      "age": "10–13",
+      "format": "Танхим",
+      "startDate": "2026/03/30",
+      "endDate": "2026/06/17",
+      "day": "Да, Лхагва",
+      "time": "17:00–18:30",
+      "totalClasses": 24,
+      "duration": "3 сар",
+      "fee": "$2,200",
+      "discount": "50%",
+      "finalFee": "$1,100",
+      "maxStudents": 24,
+      "enrolled": 24,
+      "tags": [
+        "tag-junior",
+        "tag-inclass",
+        "tag-evening"
+      ],
+      "tagLabels": [
+        "Junior",
+        "Танхим",
+        "Оройн"
+      ],
+      "features": [
+        "AI, машин сургалт, нейрон сүлжээний үндэс",
+        "Бодит төсөл дээр суралцана",
+        "Сертификат + Portfolio",
+        "Top Tech компаниудаар зочилж бодит туршлага авна",
+        "Oxford их сургуулийн профессорын нэмэлт лекц"
+      ],
+      "badge": "🏫",
+      "activeDays": [
+        "Да",
+        "Лх"
+      ],
+      "backendCourseId": 40,
+      "backendScheduleId": 22,
+      "cohort": "spring"
+    },
+    {
+      "id": 2,
+      "num": 2,
+      "title": "Junior AI Engineer",
+      "type": "junior-inclass",
+      "classType": "Оройн анги",
+      "age": "14–18",
+      "format": "Танхим",
+      "startDate": "2026/03/31",
+      "endDate": "2026/06/18",
+      "day": "Мя, Пүрэв",
+      "time": "17:00–18:30",
+      "totalClasses": 24,
+      "duration": "3 сар",
+      "fee": "$2,200",
+      "discount": "50%",
+      "finalFee": "$1,100",
+      "maxStudents": 24,
+      "enrolled": 24,
+      "tags": [
+        "tag-junior",
+        "tag-inclass",
+        "tag-evening"
+      ],
+      "tagLabels": [
+        "Junior",
+        "Танхим",
+        "Оройн"
+      ],
+      "features": [
+        "AI, машин сургалт, нейрон сүлжээний үндэс",
+        "Бодит төсөл дээр суралцана",
+        "Сертификат + Portfolio",
+        "Top Tech компаниудаар зочилж бодит туршлага авна",
+        "Oxford их сургуулийн профессорын нэмэлт лекц"
+      ],
+      "badge": "🏫",
+      "activeDays": [
+        "Мя",
+        "Пу"
+      ],
+      "backendCourseId": 41,
+      "backendScheduleId": 23,
+      "cohort": "spring"
+    },
+    {
+      "id": 10,
+      "num": 10,
+      "title": "AI For Corporate Leaders",
+      "type": "corporate",
+      "classType": "Ням гараг бүр",
+      "age": "Насанд хүрэгч",
+      "format": "Танхим",
+      "startDate": "2026/05/24",
+      "endDate": "",
+      "day": "Ням гараг",
+      "time": "10:00–13:00",
+      "totalClasses": 12,
+      "duration": "12 долоо хоног",
+      "fee": "$2,000",
+      "discount": "20%",
+      "finalFee": "$1,600",
+      "maxStudents": 20,
+      "enrolled": 0,
+      "tags": [
+        "tag-corporate",
+        "tag-inclass",
+        "tag-day"
+      ],
+      "tagLabels": [
+        "Corporate",
+        "Танхим",
+        "Өдөр"
+      ],
+      "features": [
+        "Удирдлагуудад зориулсан AI стратеги, засаглал болон бодит хэрэглээний 12 долоо хоногийн цогц хөтөлбөр.",
+        "Vibe Coding & AI Agents-ээр код бичихгүйгээр прототип бүтээх",
+        "Бизнесийн өдөр тутмын үйлдлийг автоматжуулах",
+        "Capstone: Бизнест тулгамдсан асуудлыг шийдсэн AI прототип (MVP)"
+      ],
+      "badge": "🏢",
+      "activeDays": [
+        "Ня"
+      ],
+      "backendCourseId": 50,
+      "backendScheduleId": 32,
+      "advancePaymentPercent": 50,
+      "cohort": "spring"
+    },
+    {
+      "id": 99,
+      "num": 99,
+      "title": "QPay Test (100₮)",
+      "type": "adult",
+      "classType": "Өглөөний анги",
+      "age": "Насанд хүрэгч",
+      "format": "Онлайн",
+      "startDate": "2026/05/15",
+      "endDate": "",
+      "day": "Да, Лхагва, Баасан",
+      "time": "07:30–09:00",
+      "totalClasses": 12,
+      "duration": "1 сар",
+      "fee": "100₮",
+      "discount": "0%",
+      "finalFee": "100₮",
+      "maxStudents": 100,
+      "enrolled": 0,
+      "tags": [
+        "tag-adult",
+        "tag-online",
+        "tag-morning"
+      ],
+      "tagLabels": [
+        "Adult",
+        "Онлайн",
+        "Өглөө"
+      ],
+      "features": [
+        "Хаанаас ч хамрагдах боломжтой",
+        "AI, машин сургалт, нейрон сүлжээний үндэс",
+        "Бодит төсөл дээр суралцана",
+        "Сертификат + Portfolio"
+      ],
+      "badge": "💻",
+      "activeDays": [
+        "Да",
+        "Лх",
+        "Ба"
+      ],
+      "backendCourseId": 49,
+      "backendScheduleId": 54,
+      "cohort": "spring"
+    },
+    {
+      "id": 201,
+      "num": 1,
+      "title": "Junior AI Afternoon BootCamp",
+      "type": "junior-inclass",
+      "classType": "Үдээс хойших анги",
+      "age": "10–13",
+      "format": "Танхим",
+      "startDate": "2026/06/15",
+      "endDate": "2026/07/10",
+      "day": "Да, Лхагва, Баасан",
+      "time": "14:00–17:00",
+      "totalClasses": 12,
+      "duration": "1 сар",
+      "fee": "$2,000",
+      "discount": "50%",
+      "finalFee": "$1,000",
+      "mntPrice": "3,560,000₮",
+      "maxStudents": 24,
+      "enrolled": 21,
+      "tags": [
+        "tag-junior",
+        "tag-inclass",
+        "tag-afternoon"
+      ],
+      "tagLabels": [
+        "Junior",
+        "Танхим",
+        "Үдээс хойш"
+      ],
+      "features": [
+        "AI, машин сургалт, нейрон сүлжээний үндэс",
+        "Бодит төсөл дээр суралцана",
+        "Сертификат + Portfolio",
+        "AI Academy Junior Membership эрх",
+        "Зуны амралтанд эрчимжсэн BootCamp"
+      ],
+      "badge": "🏫",
+      "activeDays": [
+        "Да",
+        "Лх",
+        "Ба"
+      ],
+      "backendCourseId": 53,
+      "backendScheduleId": 36,
+      "depositScheduleId": 44,
+      "advancePaymentPercent": 30,
+      "cohort": "summer"
+    },
+    {
+      "id": 204,
+      "num": 2,
+      "title": "Junior AI Afternoon BootCamp",
+      "type": "junior-inclass",
+      "classType": "Үдээс хойших анги",
+      "age": "14–18",
+      "format": "Танхим",
+      "startDate": "2026/06/15",
+      "endDate": "2026/07/10",
+      "day": "Да, Лхагва, Баасан",
+      "time": "14:00–17:00",
+      "totalClasses": 12,
+      "duration": "1 сар",
+      "fee": "$2,000",
+      "discount": "50%",
+      "finalFee": "$1,000",
+      "mntPrice": "3,560,000₮",
+      "maxStudents": 24,
+      "enrolled": 21,
+      "tags": [
+        "tag-junior",
+        "tag-inclass",
+        "tag-afternoon"
+      ],
+      "tagLabels": [
+        "Junior",
+        "Танхим",
+        "Үдээс хойш"
+      ],
+      "features": [
+        "AI, машин сургалт, нейрон сүлжээний үндэс",
+        "Бодит төсөл дээр суралцана",
+        "Сертификат + Portfolio",
+        "AI Academy Junior Membership эрх",
+        "Зуны амралтанд эрчимжсэн BootCamp"
+      ],
+      "badge": "🏫",
+      "activeDays": [
+        "Да",
+        "Лх",
+        "Ба"
+      ],
+      "backendCourseId": 55,
+      "backendScheduleId": 38,
+      "depositScheduleId": 46,
+      "advancePaymentPercent": 30,
+      "cohort": "summer"
+    },
+    {
+      "id": 206,
+      "num": 3,
+      "title": "Junior AI Afternoon BootCamp",
+      "type": "junior-inclass",
+      "classType": "Үдээс хойших анги",
+      "age": "10–13",
+      "format": "Танхим",
+      "startDate": "2026/06/16",
+      "endDate": "2026/07/11",
+      "day": "Мя, Пүрэв, Ням",
+      "time": "14:00–17:00",
+      "totalClasses": 12,
+      "duration": "1 сар",
+      "fee": "$2,000",
+      "discount": "50%",
+      "finalFee": "$1,000",
+      "mntPrice": "3,560,000₮",
+      "maxStudents": 24,
+      "enrolled": 21,
+      "tags": [
+        "tag-junior",
+        "tag-inclass",
+        "tag-afternoon"
+      ],
+      "tagLabels": [
+        "Junior",
+        "Танхим",
+        "Үдээс хойш"
+      ],
+      "features": [
+        "AI, машин сургалт, нейрон сүлжээний үндэс",
+        "Бодит төсөл дээр суралцана",
+        "Сертификат + Portfolio",
+        "AI Academy Junior Membership эрх",
+        "Зуны амралтанд эрчимжсэн BootCamp"
+      ],
+      "badge": "🏫",
+      "activeDays": [
+        "Мя",
+        "Пу",
+        "Ня"
+      ],
+      "backendCourseId": 57,
+      "backendScheduleId": 40,
+      "depositScheduleId": 48,
+      "advancePaymentPercent": 30,
+      "cohort": "summer"
+    },
+    {
+      "id": 207,
+      "num": 4,
+      "title": "Junior AI Morning BootCamp",
+      "type": "junior-inclass",
+      "classType": "Өглөөний анги",
+      "age": "14–18",
+      "format": "Танхим",
+      "startDate": "2026/06/15",
+      "endDate": "2026/07/10",
+      "day": "Да, Лхагва, Баасан",
+      "time": "09:00–12:00",
+      "totalClasses": 12,
+      "duration": "1 сар",
+      "fee": "$2,000",
+      "discount": "50%",
+      "finalFee": "$1,000",
+      "mntPrice": "3,560,000₮",
+      "maxStudents": 24,
+      "enrolled": 21,
+      "tags": [
+        "tag-junior",
+        "tag-inclass",
+        "tag-morning"
+      ],
+      "tagLabels": [
+        "Junior",
+        "Танхим",
+        "Өглөө"
+      ],
+      "features": [
+        "AI, машин сургалт, нейрон сүлжээний үндэс",
+        "Бодит төсөл дээр суралцана",
+        "Сертификат + Portfolio",
+        "AI Academy Junior Membership эрх",
+        "Зуны амралтанд эрчимжсэн BootCamp"
+      ],
+      "badge": "🏫",
+      "activeDays": [
+        "Да",
+        "Лх",
+        "Ба"
+      ],
+      "backendCourseId": 58,
+      "backendScheduleId": 41,
+      "depositScheduleId": 49,
+      "advancePaymentPercent": 30,
+      "cohort": "summer"
+    },
+    {
+      "id": 208,
+      "num": 5,
+      "title": "Junior AI Afternoon BootCamp",
+      "type": "junior-inclass",
+      "classType": "Үдээс хойших анги",
+      "age": "14–18",
+      "format": "Танхим",
+      "startDate": "2026/06/16",
+      "endDate": "2026/07/11",
+      "day": "Мя, Пүрэв, Бямба",
+      "time": "14:00–17:00",
+      "totalClasses": 12,
+      "duration": "1 сар",
+      "fee": "$2,000",
+      "discount": "50%",
+      "finalFee": "$1,000",
+      "mntPrice": "3,560,000₮",
+      "maxStudents": 24,
+      "enrolled": 21,
+      "tags": [
+        "tag-junior",
+        "tag-inclass",
+        "tag-afternoon"
+      ],
+      "tagLabels": [
+        "Junior",
+        "Танхим",
+        "Үдээс хойш"
+      ],
+      "features": [
+        "AI, машин сургалт, нейрон сүлжээний үндэс",
+        "Бодит төсөл дээр суралцана",
+        "Сертификат + Portfolio",
+        "AI Academy Junior Membership эрх",
+        "Зуны амралтанд эрчимжсэн BootCamp"
+      ],
+      "badge": "🏫",
+      "activeDays": [
+        "Мя",
+        "Пу",
+        "Бя"
+      ],
+      "backendCourseId": 59,
+      "backendScheduleId": 42,
+      "depositScheduleId": 50,
+      "advancePaymentPercent": 30,
+      "cohort": "summer"
+    },
+    {
+      "id": 301,
+      "num": 6,
+      "title": "Summer Bootcamp",
+      "type": "junior-inclass",
+      "classType": "Өглөөний анги",
+      "age": "10–13",
+      "format": "Танхим",
+      "startDate": "2026/08/03",
+      "endDate": "2026/08/24",
+      "day": "Да, Лхагва, Баасан",
+      "time": "09:00–12:00",
+      "totalClasses": 9,
+      "duration": "3 долоо хоног",
+      "fee": "$2,000",
+      "discount": "50%",
+      "finalFee": "$1,000",
+      "mntPrice": "3,560,000₮",
+      "maxStudents": 24,
+      "enrolled": 0,
+      "tags": [
+        "tag-junior",
+        "tag-inclass",
+        "tag-morning"
+      ],
+      "tagLabels": [
+        "Junior",
+        "Танхим",
+        "Өглөө"
+      ],
+      "features": [
+        "AI, машин сургалт, нейрон сүлжээний үндэс",
+        "Бодит төсөл дээр суралцана",
+        "Сертификат + Portfolio",
+        "AI Academy Junior Membership эрх",
+        "Зуны амралтанд эрчимжсэн BootCamp"
+      ],
+      "badge": "🚀",
+      "activeDays": [
+        "Да",
+        "Лх",
+        "Ба"
+      ],
+      "backendCourseId": 53,
+      "backendScheduleId": 60,
+      "depositScheduleId": 61,
+      "advancePaymentPercent": 50,
+      "cohort": "summer"
+    },
+    {
+      "id": 302,
+      "num": 7,
+      "title": "Summer Bootcamp",
+      "type": "junior-inclass",
+      "classType": "Үдээс хойших анги",
+      "age": "10–13",
+      "format": "Танхим",
+      "startDate": "2026/08/03",
+      "endDate": "2026/08/24",
+      "day": "Да, Лхагва, Баасан",
+      "time": "14:00–17:00",
+      "totalClasses": 9,
+      "duration": "3 долоо хоног",
+      "fee": "$2,000",
+      "discount": "50%",
+      "finalFee": "$1,000",
+      "mntPrice": "3,560,000₮",
+      "maxStudents": 24,
+      "enrolled": 0,
+      "tags": [
+        "tag-junior",
+        "tag-inclass",
+        "tag-afternoon"
+      ],
+      "tagLabels": [
+        "Junior",
+        "Танхим",
+        "Үдээс хойш"
+      ],
+      "features": [
+        "AI, машин сургалт, нейрон сүлжээний үндэс",
+        "Бодит төсөл дээр суралцана",
+        "Сертификат + Portfolio",
+        "AI Academy Junior Membership эрх",
+        "Зуны амралтанд эрчимжсэн BootCamp"
+      ],
+      "badge": "🚀",
+      "activeDays": [
+        "Да",
+        "Лх",
+        "Ба"
+      ],
+      "backendCourseId": 53,
+      "backendScheduleId": 62,
+      "depositScheduleId": 63,
+      "advancePaymentPercent": 50,
+      "cohort": "summer"
+    },
+    {
+      "id": 303,
+      "num": 8,
+      "title": "Summer Bootcamp",
+      "type": "junior-inclass",
+      "classType": "Өглөөний анги",
+      "age": "10–13",
+      "format": "Танхим",
+      "startDate": "2026/08/04",
+      "endDate": "2026/08/25",
+      "day": "Мя, Пүрэв, Бямба",
+      "time": "09:00–12:00",
+      "totalClasses": 9,
+      "duration": "3 долоо хоног",
+      "fee": "$2,000",
+      "discount": "50%",
+      "finalFee": "$1,000",
+      "mntPrice": "3,560,000₮",
+      "maxStudents": 24,
+      "enrolled": 0,
+      "tags": [
+        "tag-junior",
+        "tag-inclass",
+        "tag-morning"
+      ],
+      "tagLabels": [
+        "Junior",
+        "Танхим",
+        "Өглөө"
+      ],
+      "features": [
+        "AI, машин сургалт, нейрон сүлжээний үндэс",
+        "Бодит төсөл дээр суралцана",
+        "Сертификат + Portfolio",
+        "AI Academy Junior Membership эрх",
+        "Зуны амралтанд эрчимжсэн BootCamp"
+      ],
+      "badge": "🚀",
+      "activeDays": [
+        "Мя",
+        "Пу",
+        "Бя"
+      ],
+      "backendCourseId": 53,
+      "backendScheduleId": 64,
+      "depositScheduleId": 65,
+      "advancePaymentPercent": 50,
+      "cohort": "summer"
+    },
+    {
+      "id": 304,
+      "num": 9,
+      "title": "Summer Bootcamp",
+      "type": "junior-inclass",
+      "classType": "Үдээс хойших анги",
+      "age": "10–13",
+      "format": "Танхим",
+      "startDate": "2026/08/04",
+      "endDate": "2026/08/25",
+      "day": "Мя, Пүрэв, Ням",
+      "time": "14:00–17:00",
+      "totalClasses": 9,
+      "duration": "3 долоо хоног",
+      "fee": "$2,000",
+      "discount": "50%",
+      "finalFee": "$1,000",
+      "mntPrice": "3,560,000₮",
+      "maxStudents": 24,
+      "enrolled": 0,
+      "tags": [
+        "tag-junior",
+        "tag-inclass",
+        "tag-afternoon"
+      ],
+      "tagLabels": [
+        "Junior",
+        "Танхим",
+        "Үдээс хойш"
+      ],
+      "features": [
+        "AI, машин сургалт, нейрон сүлжээний үндэс",
+        "Бодит төсөл дээр суралцана",
+        "Сертификат + Portfolio",
+        "AI Academy Junior Membership эрх",
+        "Зуны амралтанд эрчимжсэн BootCamp"
+      ],
+      "badge": "🚀",
+      "activeDays": [
+        "Мя",
+        "Пу",
+        "Ня"
+      ],
+      "backendCourseId": 57,
+      "backendScheduleId": 66,
+      "depositScheduleId": 67,
+      "advancePaymentPercent": 50,
+      "cohort": "summer"
+    },
+    {
+      "id": 305,
+      "num": 10,
+      "title": "Summer Bootcamp",
+      "type": "junior-inclass",
+      "classType": "Өглөөний анги",
+      "age": "14–18",
+      "format": "Танхим",
+      "startDate": "2026/08/03",
+      "endDate": "2026/08/24",
+      "day": "Да, Лхагва, Баасан",
+      "time": "09:00–12:00",
+      "totalClasses": 9,
+      "duration": "3 долоо хоног",
+      "fee": "$2,000",
+      "discount": "50%",
+      "finalFee": "$1,000",
+      "mntPrice": "3,560,000₮",
+      "maxStudents": 24,
+      "enrolled": 0,
+      "tags": [
+        "tag-junior",
+        "tag-inclass",
+        "tag-morning"
+      ],
+      "tagLabels": [
+        "Junior",
+        "Танхим",
+        "Өглөө"
+      ],
+      "features": [
+        "AI, машин сургалт, нейрон сүлжээний үндэс",
+        "Бодит төсөл дээр суралцана",
+        "Сертификат + Portfolio",
+        "AI Academy Junior Membership эрх",
+        "Зуны амралтанд эрчимжсэн BootCamp"
+      ],
+      "badge": "🚀",
+      "activeDays": [
+        "Да",
+        "Лх",
+        "Ба"
+      ],
+      "backendCourseId": 58,
+      "backendScheduleId": 68,
+      "depositScheduleId": 69,
+      "advancePaymentPercent": 50,
+      "cohort": "summer"
+    },
+    {
+      "id": 306,
+      "num": 11,
+      "title": "Summer Bootcamp",
+      "type": "junior-inclass",
+      "classType": "Үдээс хойших анги",
+      "age": "14–18",
+      "format": "Танхим",
+      "startDate": "2026/08/03",
+      "endDate": "2026/08/24",
+      "day": "Да, Лхагва, Баасан",
+      "time": "14:00–17:00",
+      "totalClasses": 9,
+      "duration": "3 долоо хоног",
+      "fee": "$2,000",
+      "discount": "50%",
+      "finalFee": "$1,000",
+      "mntPrice": "3,560,000₮",
+      "maxStudents": 24,
+      "enrolled": 0,
+      "tags": [
+        "tag-junior",
+        "tag-inclass",
+        "tag-afternoon"
+      ],
+      "tagLabels": [
+        "Junior",
+        "Танхим",
+        "Үдээс хойш"
+      ],
+      "features": [
+        "AI, машин сургалт, нейрон сүлжээний үндэс",
+        "Бодит төсөл дээр суралцана",
+        "Сертификат + Portfolio",
+        "AI Academy Junior Membership эрх",
+        "Зуны амралтанд эрчимжсэн BootCamp"
+      ],
+      "badge": "🚀",
+      "activeDays": [
+        "Да",
+        "Лх",
+        "Ба"
+      ],
+      "backendCourseId": 55,
+      "backendScheduleId": 70,
+      "depositScheduleId": 71,
+      "advancePaymentPercent": 50,
+      "cohort": "summer"
+    },
+    {
+      "id": 307,
+      "num": 12,
+      "title": "Summer Bootcamp",
+      "type": "junior-inclass",
+      "classType": "Үдээс хойших анги",
+      "age": "14–18",
+      "format": "Танхим",
+      "startDate": "2026/08/04",
+      "endDate": "2026/08/25",
+      "day": "Мя, Пүрэв, Бямба",
+      "time": "14:00–17:00",
+      "totalClasses": 9,
+      "duration": "3 долоо хоног",
+      "fee": "$2,000",
+      "discount": "50%",
+      "finalFee": "$1,000",
+      "mntPrice": "3,560,000₮",
+      "maxStudents": 24,
+      "enrolled": 0,
+      "tags": [
+        "tag-junior",
+        "tag-inclass",
+        "tag-afternoon"
+      ],
+      "tagLabels": [
+        "Junior",
+        "Танхим",
+        "Үдээс хойш"
+      ],
+      "features": [
+        "AI, машин сургалт, нейрон сүлжээний үндэс",
+        "Бодит төсөл дээр суралцана",
+        "Сертификат + Portfolio",
+        "AI Academy Junior Membership эрх",
+        "Зуны амралтанд эрчимжсэн BootCamp"
+      ],
+      "badge": "🚀",
+      "activeDays": [
+        "Мя",
+        "Пу",
+        "Бя"
+      ],
+      "backendCourseId": 59,
+      "backendScheduleId": 72,
+      "depositScheduleId": 73,
+      "advancePaymentPercent": 50,
+      "cohort": "summer"
+    },
+    {
+      "id": 308,
+      "num": 13,
+      "title": "Summer Bootcamp",
+      "type": "junior-inclass",
+      "classType": "Өглөөний анги",
+      "age": "14–18",
+      "format": "Танхим",
+      "startDate": "2026/08/04",
+      "endDate": "2026/08/25",
+      "day": "Мя, Пүрэв, Ням",
+      "time": "09:00–12:00",
+      "totalClasses": 9,
+      "duration": "3 долоо хоног",
+      "fee": "$2,000",
+      "discount": "50%",
+      "finalFee": "$1,000",
+      "mntPrice": "3,560,000₮",
+      "maxStudents": 24,
+      "enrolled": 0,
+      "tags": [
+        "tag-junior",
+        "tag-inclass",
+        "tag-morning"
+      ],
+      "tagLabels": [
+        "Junior",
+        "Танхим",
+        "Өглөө"
+      ],
+      "features": [
+        "AI, машин сургалт, нейрон сүлжээний үндэс",
+        "Бодит төсөл дээр суралцана",
+        "Сертификат + Portfolio",
+        "AI Academy Junior Membership эрх",
+        "Зуны амралтанд эрчимжсэн BootCamp"
+      ],
+      "badge": "🚀",
+      "activeDays": [
+        "Мя",
+        "Пу",
+        "Ня"
+      ],
+      "backendCourseId": 58,
+      "backendScheduleId": 74,
+      "depositScheduleId": 75,
+      "advancePaymentPercent": 50,
+      "cohort": "summer"
+    }
+  ]
+}

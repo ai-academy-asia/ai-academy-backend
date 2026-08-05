@@ -1,7 +1,17 @@
-"""Small helpers shared by the actor routers (permission checks on g.current_user)."""
-from flask import g
+"""Small helpers shared by the actor routers."""
+from flask import g, request
 
 from app.auth import has_permission
+
+
+def body() -> dict:
+    """The JSON request body, or ``{}``.
+
+    Silent parsing on purpose: a missing or malformed body should surface as the
+    specific "field required" error the service raises, not as a generic 400
+    from Flask that tells the caller nothing about which field was wrong.
+    """
+    return request.get_json(silent=True) or {}
 
 
 def current_user():

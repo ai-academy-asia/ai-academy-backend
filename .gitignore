@@ -29,6 +29,9 @@ aiaa-deploy.pub
 # Local-only Claude project notes (contains infra IDs/IPs)
 CLAUDE.md
 
+# Claude Code scratch worktrees — checkouts of this repo, never part of it
+.claude/worktrees/
+
 # Flask / instance
 instance/
 *.sqlite3

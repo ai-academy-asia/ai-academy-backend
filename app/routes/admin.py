@@ -14,13 +14,11 @@ from app.services import schedules as sched_svc
 from app.services import users as users_svc
 from app.services.errors import ServiceError
 
-from ._shared import can_any
+from ._shared import body, can_any
 
 bp = Blueprint("admin", __name__)
 
 
-def _body():
-    return request.get_json(silent=True) or {}
 
 
 # ============================================================ students / teachers
@@ -38,10 +36,10 @@ def _register_user_crud(segment):
         return jsonify(users_svc.get_user(cfg, profile_id))
 
     def create_user():
-        return jsonify(users_svc.create_user(cfg, _body())), 201
+        return jsonify(users_svc.create_user(cfg, body())), 201
 
     def update_user(profile_id):
-        return jsonify(users_svc.update_user(cfg, profile_id, _body()))
+        return jsonify(users_svc.update_user(cfg, profile_id, body()))
 
     def delete_user(profile_id):
         users_svc.delete_user(cfg, profile_id)
@@ -49,7 +47,7 @@ def _register_user_crud(segment):
 
     def reset_password(profile_id):
         users_svc.reset_password(
-            cfg, profile_id, _body().get("new_password") or "",
+            cfg, profile_id, body().get("new_password") or "",
             min_len=current_app.config["PASSWORD_MIN_LENGTH"],
         )
         return jsonify(status="ok")
@@ -90,14 +88,14 @@ def get_classroom(classroom_id):
 @bp.post("/admin/classrooms")
 @require_permission("classroom:manage")
 def create_classroom():
-    return jsonify(classrooms_svc.create_classroom(_body()).to_dict()), 201
+    return jsonify(classrooms_svc.create_classroom(body()).to_dict()), 201
 
 
 @bp.patch("/admin/classrooms/<int:classroom_id>")
 @require_permission("classroom:manage")
 def update_classroom(classroom_id):
     classroom = classrooms_svc.get_or_404(classroom_id)
-    return jsonify(classrooms_svc.update_classroom(classroom, _body()).to_dict())
+    return jsonify(classrooms_svc.update_classroom(classroom, body()).to_dict())
 
 
 @bp.delete("/admin/classrooms/<int:classroom_id>")
@@ -126,14 +124,14 @@ def get_cohort(cohort_id):
 @bp.post("/admin/cohorts")
 @require_permission("cohort:manage")
 def create_cohort():
-    return jsonify(cohorts_svc.create_cohort(_body()).to_dict(detail=True)), 201
+    return jsonify(cohorts_svc.create_cohort(body()).to_dict(detail=True)), 201
 
 
 @bp.patch("/admin/cohorts/<int:cohort_id>")
 @require_permission("cohort:manage")
 def update_cohort(cohort_id):
     cohort = cohorts_svc.get_or_404(cohort_id)
-    return jsonify(cohorts_svc.update_cohort(cohort, _body()).to_dict(detail=True))
+    return jsonify(cohorts_svc.update_cohort(cohort, body()).to_dict(detail=True))
 
 
 @bp.delete("/admin/cohorts/<int:cohort_id>")
@@ -147,7 +145,7 @@ def delete_cohort(cohort_id):
 @require_permission("enrollment:create")
 def enroll_by_staff(cohort_id):
     cohort = cohorts_svc.get_or_404(cohort_id)
-    student_id = _body().get("student_id")
+    student_id = body().get("student_id")
     if not student_id:
         raise ServiceError(400, "student_id_required")
     enrollment = enroll_svc.enroll(
@@ -175,14 +173,14 @@ def remove_cohort_student(cohort_id, student_id):
 @bp.post("/courses")
 @require_permission("course:edit")
 def create_course():
-    return jsonify(courses_svc.create_course(_body()).to_detail()), 201
+    return jsonify(courses_svc.create_course(body()).to_detail()), 201
 
 
 @bp.patch("/courses/<id_or_slug>")
 @require_permission("course:edit")
 def update_course(id_or_slug):
     course = courses_svc.get_course(id_or_slug)
-    return jsonify(courses_svc.update_course(course, _body()).to_detail())
+    return jsonify(courses_svc.update_course(course, body()).to_detail())
 
 
 @bp.delete("/courses/<id_or_slug>")

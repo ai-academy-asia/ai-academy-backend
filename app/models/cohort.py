@@ -23,6 +23,13 @@ class Cohort(db.Model):
     parent_cohort_id = db.Column(
         db.Integer, db.ForeignKey("cohorts.id", ondelete="SET NULL"), index=True
     )
+    # Id this run had in the legacy system — unique there, and the key the
+    # marketing site books against.
+    legacy_schedule_id = db.Column(db.Integer, unique=True, index=True)
+    # Legacy course this run sat under. Runs we group into one course did not
+    # always share one there (legacy 53 and 57 both fed "Afternoon BootCamp
+    # 10–13"), so the course-level id alone would leave some ids unresolvable.
+    legacy_course_id = db.Column(db.Integer, index=True)
     name = db.Column(db.String(200), nullable=False)   # e.g. "Corporate Leaders 2026-08"
     start_date = db.Column(db.Date)
     end_date = db.Column(db.Date)

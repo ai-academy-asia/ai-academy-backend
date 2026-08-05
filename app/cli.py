@@ -85,5 +85,117 @@ def create_student(email, password, first_name, last_name, phone, no_force_pw_ch
     _echo_account(account, student)
 
 
+ebarimt_cli = AppGroup("ebarimt", help="eBarimt / PosAPI operations")
+
+
+@ebarimt_cli.command("send-data")
+def send_data():
+    """Flush issued receipts to the tax authority (PosAPI sendData).
+
+    Run on a schedule — the ``ebarimt-sender`` container calls this hourly.
+    Exits non-zero when PosAPI is unreachable or rejects, so a scheduler can
+    tell a real failure from a quiet success.
+
+    It also releases expired seat holds, because this is the platform's only
+    periodic tick and an unreleased hold makes a cohort read "sold out" forever.
+    That runs first and separately: a PosAPI outage must not keep seats locked.
+    """
+    from app.services import ebarimt as svc
+    from app.services import enrolment as enrol_svc
+    from app.services.errors import ServiceError
+
+    freed = enrol_svc.release_expired_holds()
+    if freed:
+        click.echo(f"[enrolment] released {freed} expired seat hold(s)")
+
+    try:
+        result = svc.flush_to_tax_authority()
+    except ServiceError as exc:
+        raise click.ClickException(
+            f"sendData failed: {exc.code} {exc.extra.get('detail') or ''}".strip()
+        ) from exc
+    click.echo(
+        f"[ebarimt] sendData ok · last_sent={result['last_sent_date']} "
+        f"· lotteries_left={result['left_lotteries']} "
+        f"· merchants={','.join(result['merchants']) or 'none'}"
+    )
+
+
+mail_cli = AppGroup("mail", help="Outbound email")
+
+
+@mail_cli.command("test")
+@click.option("--to", required=True, help="Where to send the probe.")
+def mail_test(to):
+    """Send a probe email to verify SMTP settings.
+
+    Reports the resolved settings first, so a failure points at the wrong knob
+    instead of just 'authentication failed'.
+    """
+    from flask import current_app
+
+    from app import mail
+
+    cfg = current_app.config
+    click.echo(
+        f"host={cfg.get('MAIL_HOST')}:{cfg.get('MAIL_PORT')} "
+        f"tls={cfg.get('MAIL_USE_TLS')} ssl={cfg.get('MAIL_USE_SSL')}\n"
+        f"user={cfg.get('MAIL_USERNAME') or '(none — IP-authenticated relay)'}\n"
+        f"from={cfg.get('MAIL_FROM')}"
+    )
+    if not mail.is_configured():
+        raise click.ClickException("MAIL_HOST is empty — nothing to test.")
+
+    from email.message import EmailMessage
+
+    msg = EmailMessage()
+    msg["To"] = to
+    msg["Subject"] = "AIAA — SMTP тест"
+    msg.set_content(
+        "Энэ бол AIAA backend-ийн SMTP тохиргоог шалгах захидал.\n"
+        "Хүлээн авсан бол баримт илгээх тохиргоо ажиллаж байна."
+    )
+    try:
+        mail.send_message(msg)
+    except mail.MailError as exc:
+        raise click.ClickException(str(exc)) from exc
+    click.echo(f"sent -> {to}")
+    click.echo(
+        "Ирсэн захидлын From хаяг MAIL_FROM-той таарч байгаа эсэхийг шалгаарай — "
+        "Gmail нь баталгаажаагүй хаягийг нэвтэрсэн хаягаар дардаг."
+    )
+
+
+seed_cli = AppGroup("seed", help="Reference / initial data")
+
+
+@seed_cli.command("courses")
+@click.option("--publish", is_flag=True,
+              help="Mark the seeded courses published and their cohorts open.")
+@click.option("--file", "path", default=None, help="Override the seed JSON path.")
+def seed_courses(publish, path):
+    """Load the marketing site's static catalogue into courses + cohorts.
+
+    Idempotent: re-running updates the same rows instead of duplicating them.
+    Without --publish nothing becomes visible on /programmes, so seeding a live
+    database cannot accidentally put a programme on sale.
+    """
+    from pathlib import Path
+
+    from app.seeds import seed_courses as run
+
+    result = run(path=Path(path) if path else None, publish=publish)
+    click.echo(
+        f"courses: +{result['courses']} new, {result['updated']} updated · "
+        f"cohorts: +{result['cohorts']} new"
+        + ("  [published]" if publish else "  [draft — use --publish to expose]")
+    )
+    for item in result["needs_mnt_price"]:
+        click.echo(f"  ! priced in USD, needs an MNT figure before it can be sold: {item}")
+
+
 def register_cli(app) -> None:
     app.cli.add_command(auth_cli)
+    app.cli.add_command(ebarimt_cli)
+    app.cli.add_command(mail_cli)
+    app.cli.add_command(seed_cli)
