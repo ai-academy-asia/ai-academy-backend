@@ -21,7 +21,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from app.extensions import db
-from app.models import Cohort, Course
+from app.models import Cohort, CohortLegacySchedule, Course
 
 SEED_FILE = Path(__file__).resolve().parent.parent / "seeds" / "static-courses.json"
 
@@ -107,7 +107,8 @@ def seed_courses(*, path: Path | None = None, publish: bool = False) -> dict:
             (e["title"], e["type"], e["format"], e.get("age") or ""), []
         ).append(e)
 
-    summary = {"courses": 0, "cohorts": 0, "updated": 0, "needs_mnt_price": []}
+    summary = {"courses": 0, "cohorts": 0, "schedule_ids": 0, "updated": 0,
+               "needs_mnt_price": []}
 
     for (title, type_, fmt, age), runs in groups.items():
         head = runs[0]
@@ -182,6 +183,8 @@ def seed_courses(*, path: Path | None = None, publish: bool = False) -> dict:
             cohort.schedule_note = run.get("time")   # keep the compound original
             cohort.legacy_schedule_id = run.get("backendScheduleId")
             cohort.legacy_course_id = run.get("backendCourseId")
+            db.session.flush()   # need cohort.id for the schedule-id map
+            summary["schedule_ids"] += _map_legacy_schedules(cohort, run)
             if publish:
                 cohort.status = "open"
             elif not cohort.status:
@@ -189,3 +192,39 @@ def seed_courses(*, path: Path | None = None, publish: bool = False) -> dict:
 
     db.session.commit()
     return summary
+
+
+# Which static field is which payment terms, and what share of the price it
+# bills. The deposit share is per-course (`advancePaymentPercent`), defaulting
+# to the site's own DEPOSIT_PERCENT.
+DEFAULT_DEPOSIT_PERCENT = 30
+_SCHEDULE_FIELDS = (
+    ("backendScheduleId", "full", False),
+    ("depositScheduleId", "deposit", True),
+    ("promoScheduleId", "promo", False),
+    ("promoDepositScheduleId", "promo_deposit", True),
+)
+
+
+def _map_legacy_schedules(cohort: Cohort, run: dict) -> int:
+    """Point every legacy schedule id this run published at ``cohort``.
+
+    The site posts whichever id matches the terms the buyer chose, and all of
+    them are the same seat in the same class — so they resolve to one cohort and
+    differ only in what fraction of the price they charge.
+    """
+    deposit = int(run.get("advancePaymentPercent") or DEFAULT_DEPOSIT_PERCENT)
+    written = 0
+    for field, kind, is_deposit in _SCHEDULE_FIELDS:
+        legacy_id = run.get(field)
+        if not legacy_id:
+            continue
+        row = db.session.get(CohortLegacySchedule, int(legacy_id))
+        if row is None:
+            row = CohortLegacySchedule(legacy_schedule_id=int(legacy_id))
+            db.session.add(row)
+        row.cohort_id = cohort.id
+        row.kind = kind
+        row.charge_percent = deposit if is_deposit else 100
+        written += 1
+    return written

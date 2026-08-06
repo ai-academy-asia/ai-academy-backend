@@ -462,6 +462,7 @@ def _as_service_error(exc: PaymentGatewayError) -> ServiceError:
     if exc.message in ("not_configured", "unsupported_provider"):
         status = 501 if exc.message == "not_configured" else 400
         return ServiceError(
-            status, f"gateway_{exc.message}", provider=exc.provider, detail=exc.detail
+            status, f"gateway_{exc.message}", provider=exc.provider,
+            internal=exc.detail,
         )
     return from_integration_error(exc, prefix="gateway_", provider=exc.provider)

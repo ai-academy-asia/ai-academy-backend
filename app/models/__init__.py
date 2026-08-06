@@ -7,7 +7,12 @@ from .auth_account import (  # noqa: F401
     AuthAccount,
 )
 from .classroom import Classroom  # noqa: F401
-from .cohort import COHORT_STATUSES, Cohort  # noqa: F401
+from .cohort import (  # noqa: F401
+    COHORT_STATUSES,
+    LEGACY_SCHEDULE_KINDS,
+    Cohort,
+    CohortLegacySchedule,
+)
 from .course import COURSE_LEVELS, COURSE_STATUSES, Course  # noqa: F401
 from .ebarimt import EBARIMT_STATUSES, EBARIMT_TYPES, EBarimtReceipt  # noqa: F401
 from .enrollment import ENROLLMENT_STATUSES, Enrollment  # noqa: F401

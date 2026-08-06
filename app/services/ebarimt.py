@@ -258,7 +258,7 @@ def _send_to_posapi(receipt: EBarimtReceipt, payload: dict, *, client: PosAPICli
         raise _as_service_error(exc) from exc
     ddtd = resp.get("id") or resp.get("billId") or resp.get("ddtd")
     if not ddtd:
-        raise ServiceError(502, "ebarimt_no_ddtd", detail=resp)
+        raise ServiceError(502, "ebarimt_no_ddtd", internal=resp)
     receipt.is_temp_mode = False
     receipt.status = "issued"
     receipt.ebarimt_id = str(ddtd)
@@ -417,7 +417,7 @@ def email_receipt(receipt: EBarimtReceipt, *, to: str | None = None) -> dict:
         receipt.email_error = str(exc)[:500]
         receipt.emailed_at = None
         db.session.commit()
-        raise ServiceError(502, "mail_send_failed", detail=str(exc)) from exc
+        raise ServiceError(502, "mail_send_failed", internal=str(exc)) from exc
 
     receipt.emailed_at = datetime.utcnow()
     receipt.emailed_to = address

@@ -121,3 +121,42 @@ class Cohort(db.Model):
 
     def __repr__(self) -> str:
         return f"<Cohort {self.id} {self.name!r} ({self.status})>"
+
+
+# What a legacy schedule row meant. The old system had no concept of "pay a
+# deposit" — it published a second schedule row at a reduced price and let the
+# buyer pick that one instead, so the id itself is the payment terms.
+LEGACY_SCHEDULE_KINDS = ("full", "deposit", "promo", "promo_deposit")
+
+
+class CohortLegacySchedule(db.Model):
+    """Maps every legacy schedule id the marketing site can send onto a cohort.
+
+    ``Cohort.legacy_schedule_id`` holds only the full-price id, which is all the
+    site sends while the buyer leaves the terms alone. Choosing «Урьдчилгаа
+    төлөх» or applying the promo code swaps in a different id — up to four per
+    run — and those have no cohort of their own: it is the same seat in the same
+    class, billed differently.
+
+    ``charge_percent`` is why this is a table and not a set of columns: the
+    server has to know what fraction of the price the chosen id stands for, or
+    a buyer who picks a 50% deposit gets invoiced 100%.
+    """
+
+    __tablename__ = "cohort_legacy_schedules"
+
+    legacy_schedule_id = db.Column(db.Integer, primary_key=True, autoincrement=False)
+    cohort_id = db.Column(
+        db.Integer, db.ForeignKey("cohorts.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
+    kind = db.Column(db.String(20), nullable=False, default="full")
+    charge_percent = db.Column(db.Numeric(5, 2), nullable=False, default=100)
+
+    cohort = db.relationship("Cohort")
+
+    def __repr__(self) -> str:
+        return (
+            f"<CohortLegacySchedule {self.legacy_schedule_id} -> "
+            f"cohort {self.cohort_id} {self.kind} {self.charge_percent}%>"
+        )

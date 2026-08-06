@@ -13,6 +13,11 @@ services:
     # Bind to localhost only — host nginx is the public entrypoint.
     ports:
       - "127.0.0.1:8000:8000"
+    # PosAPI is a daemon on the host, not a compose service. `localhost` inside
+    # a container is the container, so EBARIMT_POSAPI_URL must name the host:
+    # http://host.docker.internal:7080.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # ---- eBarimt: hourly push of issued receipts to the tax authority ----
   # Its own container on purpose. Issuing a receipt is instant (PosAPI hands out
@@ -27,18 +32,33 @@ services:
     container_name: aiaa-ebarimt-sender
     restart: unless-stopped
     env_file: .env
+    # Same reason as `app`: PosAPI lives on the host, and `localhost` in here is
+    # this container. Without it every tick fails with posapi_unreachable.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     # Ticks on the hour boundary rather than every 3600s from boot, so a
     # container restart doesn't permanently shift when the flush happens.
-    # A failed tick only logs — the next hour retries. Set
-    # EBARIMT_SEND_INTERVAL_SECONDS in .env to change the cadence.
+    # Set EBARIMT_SEND_INTERVAL_SECONDS in .env to change the cadence.
+    #
+    # A failed tick must not stop the loop — the next hour retries — but it must
+    # not vanish either: receipts the tax authority never received are a
+    # compliance problem, and one line among a day of logs is not findable. So
+    # consecutive failures are counted and reported as elapsed time, which is
+    # the number an operator actually needs.
     command:
       - sh
       - -c
       - |
         interval="$${EBARIMT_SEND_INTERVAL_SECONDS:-3600}"
         echo "[ebarimt-sender] started, interval=$${interval}s"
+        fails=0
         while true; do
-          flask ebarimt send-data || echo "[ebarimt-sender] tick failed; retrying next interval"
+          if flask ebarimt send-data; then
+            fails=0
+          else
+            fails=$$(( fails + 1 ))
+            echo "[ebarimt-sender] ALERT: tick failed ($$fails in a row, ~$$(( fails * interval / 60 ))m since the last successful flush to the tax authority)"
+          fi
           sleep $$(( interval - $$(date +%s) % interval ))
         done
 

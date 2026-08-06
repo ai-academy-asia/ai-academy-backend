@@ -27,6 +27,7 @@ from app.extensions import db
 from app.models import (
     ClassroomRequest,
     Cohort,
+    CohortLegacySchedule,
     Course,
     EBarimtReceipt,
     Payment,
@@ -98,11 +99,37 @@ def course_for_public_id(course_id) -> Course | None:
     return min(rows, key=lambda c: c.id) if rows else None
 
 
+def legacy_schedule(schedule_id) -> CohortLegacySchedule | None:
+    """The payment-terms row a legacy schedule id stands for, if any.
+
+    The old system had no "pay a deposit" flag: it published a second schedule
+    row at a reduced price. The site still posts whichever id the buyer picked,
+    so this is the only place that knows a given id means "50% of the price".
+    """
+    try:
+        schedule_id = int(schedule_id)
+    except (TypeError, ValueError):
+        return None
+    return db.session.get(CohortLegacySchedule, schedule_id)
+
+
+def charge_fraction(schedule_id) -> Decimal:
+    """What share of the price the chosen id bills. 1 for a plain full-price id."""
+    row = legacy_schedule(schedule_id)
+    if row is None:
+        return Decimal("1")
+    percent = Decimal(str(row.charge_percent or 100))
+    return max(Decimal("0"), min(percent, Decimal("100"))) / 100
+
+
 def cohort_for_public_id(schedule_id) -> Cohort | None:
     try:
         schedule_id = int(schedule_id)
     except (TypeError, ValueError):
         return None
+    row = db.session.get(CohortLegacySchedule, schedule_id)
+    if row is not None:
+        return row.cohort or db.session.get(Cohort, row.cohort_id)
     return (
         Cohort.query.filter_by(legacy_schedule_id=schedule_id).first()
         or db.session.get(Cohort, schedule_id)
@@ -217,16 +244,37 @@ def _programme(course: Course, cohort: Cohort | None, locale: str) -> dict:
         # What a booking is made against.
         "classroom_course_id": public_course_id(course),
         "schedule_id": public_schedule_id(cohort) if cohort is not None else None,
-        # Pricing variants: we model one schedule with an explicit breakdown
-        # rather than four schedule rows, which the contract itself recommends
-        # for a fresh backend. Nulled so the front-end takes the simple path.
+        # Pricing variants. A fresh client should send `schedule_id` and state
+        # its terms, but the marketing site still holds the legacy ids and posts
+        # whichever the buyer picked, so we publish exactly the ones we resolve.
+        **_variant_ids(cohort),
+        "_seats": seats,  # stripped by the route; used by the schedules endpoint
+    }
+
+
+def _variant_ids(cohort: Cohort | None) -> dict:
+    """The legacy schedule ids this run answers to, by payment terms."""
+    empty = {
         "promo_code": None,
         "promo_discount_percent": 0,
         "promo_schedule_id": None,
         "deposit_schedule_id": None,
         "promo_deposit_schedule_id": None,
         "advance_payment_percent": 0,
-        "_seats": seats,  # stripped by the route; used by the schedules endpoint
+    }
+    if cohort is None:
+        return empty
+    rows = CohortLegacySchedule.query.filter_by(cohort_id=cohort.id).all()
+    by_kind = {r.kind: r for r in rows}
+    deposit = by_kind.get("deposit") or by_kind.get("promo_deposit")
+    return {
+        **empty,
+        "promo_schedule_id": getattr(by_kind.get("promo"), "legacy_schedule_id", None),
+        "deposit_schedule_id": getattr(by_kind.get("deposit"), "legacy_schedule_id", None),
+        "promo_deposit_schedule_id": getattr(
+            by_kind.get("promo_deposit"), "legacy_schedule_id", None
+        ),
+        "advance_payment_percent": int(deposit.charge_percent) if deposit else 0,
     }
 
 
@@ -472,6 +520,12 @@ def _build_booking(request: ClassroomRequest, cohort: Cohort, body: dict) -> Sea
     # An unverifiable code changes nothing: the client's figure is advisory.
     promo_amount = _discount_for(promotion, amount) if promotion else Decimal("0")
     amount = max(Decimal("0"), amount - promo_amount)
+
+    # The schedule id also carries the payment terms — a deposit id bills a
+    # share of the price. Applied after the promotion, matching what the site
+    # shows the buyer (discount first, then the deposit share of what is left).
+    fraction = charge_fraction(body.get("classroom_course_schedule_id"))
+    amount = (amount * fraction).quantize(Decimal("0.01"))
 
     return SeatBooking(
         classroom_request_id=request.id, cohort_id=cohort.id, number_of_seat=seat,
