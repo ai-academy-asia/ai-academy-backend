@@ -206,7 +206,10 @@ def issue_for_payment(payment: Payment, *, type_="B2C_RECEIPT", customer_registe
     Raises ServiceError on a live-mode PosAPI failure; in temp mode it always
     succeeds. Idempotent: returns the existing receipt if one already exists.
     """
-    existing = EBarimtReceipt.query.filter_by(payment_id=payment.id).first()
+    # Newest first: after a partial refund a payment carries the returned
+    # original *and* the replacement, and the live one is the current truth.
+    existing = (EBarimtReceipt.query.filter_by(payment_id=payment.id)
+                .order_by(EBarimtReceipt.id.desc()).first())
     if existing is not None:
         return existing
     if type_ not in ("B2C_RECEIPT", "B2B_RECEIPT"):
@@ -238,13 +241,39 @@ def issue_for_payment(payment: Payment, *, type_="B2C_RECEIPT", customer_registe
     if not is_temp_mode():
         _send_to_posapi(receipt, payload)
 
-    db.session.add(receipt)
-    db.session.commit()
+    _persist_or_void(receipt)
     # After commit: the receipt is durable before we attempt delivery, so a
     # slow or failing SMTP hop can't take the issued receipt down with it.
     if not receipt.is_temp_mode:
         _email_receipt_quietly(receipt)
     return receipt
+
+
+def _persist_or_void(receipt: EBarimtReceipt) -> None:
+    """Store the receipt row, and hand the DDTD back if that fails.
+
+    The receipt is minted at the tax authority *before* its row is committed —
+    it has to be, since the DDTD is what we store. So a failed insert leaves the
+    tax authority holding a receipt our books have no trace of, which nothing
+    later can reconcile: no local row means no DDTD to void by. Undo it while we
+    still know the number, and if even that fails, log the DDTD plainly — it is
+    then the only way to find the receipt again.
+    """
+    ddtd = None if receipt.is_temp_mode else receipt.ebarimt_id
+    try:
+        db.session.add(receipt)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        if ddtd:
+            try:
+                _posapi().return_receipt(ddtd)
+            except EBarimtError:
+                current_app.logger.error(
+                    "eBarimt receipt %s was issued but neither stored nor voided — "
+                    "void it by hand at the PosAPI", ddtd,
+                )
+        raise
 
 
 def _send_to_posapi(receipt: EBarimtReceipt, payload: dict, *, client: PosAPIClient = None):
@@ -308,13 +337,20 @@ def _replay_payload(receipt: EBarimtReceipt) -> dict:
     even be the old flat 2.0 ``stocks[]`` body, and would be rejected on reissue.
     Only the human-entered description is carried across.
     """
+    return build_payload(receipt, description=_description_of(receipt))
+
+
+def _description_of(receipt: EBarimtReceipt) -> str:
+    """The human-entered line item, read back out of whichever payload shape we
+    stored it in (3.0 nested items, legacy 2.0 stocks, or a bare request/response
+    envelope written by :func:`_send_to_posapi`)."""
     raw = receipt.raw if isinstance(receipt.raw, dict) else {}
-    description = (
-        dig(raw, "receipts", 0, "items", 0, "name")   # 3.0
-        or dig(raw, "stocks", 0, "name")              # legacy 2.0
+    return (
+        dig(raw, "receipts", 0, "items", 0, "name")               # 3.0
+        or dig(raw, "request", "receipts", 0, "items", 0, "name")  # issued: {request,response}
+        or dig(raw, "stocks", 0, "name")                          # legacy 2.0
         or f"AIAA payment {receipt.payment_id}"
     )
-    return build_payload(receipt, description=description)
 
 
 def reissue(receipt: EBarimtReceipt) -> EBarimtReceipt:
@@ -489,6 +525,63 @@ def return_receipt(receipt: EBarimtReceipt) -> EBarimtReceipt:
     receipt.status = "returned"
     receipt.returned_at = datetime.utcnow()
     db.session.commit()
+    return receipt
+
+
+def issue_replacement(original: EBarimtReceipt, amount, *, description=None) -> EBarimtReceipt:
+    """Receipt the part of a sale that survived a partial refund.
+
+    eBarimt has no partial void — a receipt is returned whole — so a buyer who
+    got half their money back is left holding a receipt for a sale that no longer
+    exists, and the kept half has none. The fix the tax authority expects is a
+    second receipt for what was actually kept, which is what this issues, linked
+    to the voided one through ``replaces_receipt_id``.
+
+    Idempotent per ``(payment, amount)``: an existing live replacement for the
+    same figure is returned untouched, so a retried refund does not mint a second
+    receipt for money that was only kept once.
+    """
+    total = Decimal(str(amount))
+    if total <= 0:
+        raise ServiceError(400, "replacement_amount_required")
+    if original.payment_id is None:
+        raise ServiceError(409, "receipt_has_no_payment", receipt_id=original.id)
+
+    existing = next(
+        (r for r in EBarimtReceipt.query.filter_by(payment_id=original.payment_id).all()
+         if r.status != "returned" and Decimal(str(r.total_amount)) == total),
+        None,
+    )
+    if existing is not None:
+        return existing
+
+    payment = original.payment or db.session.get(Payment, original.payment_id)
+    vat, city_tax = compute_taxes(total)
+    receipt = EBarimtReceipt(
+        payment_id=original.payment_id,
+        invoice_id=original.invoice_id,
+        replaces_receipt_id=original.id,
+        type=original.type,
+        customer_register=original.customer_register,
+        total_amount=total,
+        vat_amount=vat,
+        city_tax_amount=city_tax,
+        district_code=_cfg("EBARIMT_DISTRICT_CODE"),
+        pos_no=_cfg("EBARIMT_POS_NO"),
+        is_temp_mode=True,
+        status="temp",
+    )
+    payload = build_payload(
+        receipt, description=description or _description_of(original), payment=payment
+    )
+    receipt.raw = payload
+
+    if not is_temp_mode():
+        _send_to_posapi(receipt, payload)
+
+    _persist_or_void(receipt)
+    if not receipt.is_temp_mode:
+        _email_receipt_quietly(receipt)
     return receipt
 
 

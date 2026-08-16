@@ -17,6 +17,7 @@ from app.models import Enrollment
 from app.payments import SUPPORTED_PROVIDERS
 from app.services import ebarimt as ebarimt_svc
 from app.services import payments as pay_svc
+from app.services import refunds as refund_svc
 from app.services.errors import ServiceError
 
 from ._shared import body
@@ -149,14 +150,40 @@ def list_payments():
     return jsonify(count=len(rows), payments=[p.to_dict() for p in rows])
 
 
+@bp.get("/admin/refunds/lookup")
+@require_permission("payment:refund")
+def lookup_refund():
+    """Resolve one typed-in number to the sale behind it, changing nothing.
+
+    ``?ref=`` takes whatever finance is holding — a lottery number, a ДДТД, a
+    payment token — and the server works out which it is. An explicit key
+    (``?lottery=``, ``?payment_id=``…) overrides that guess.
+    """
+    data = {k: v for k, v in request.args.items() if k in refund_svc.REFERENCE_KEYS and v}
+    return jsonify(refund_svc.lookup(data or refund_svc.detect_reference(request.args.get("ref"))))
+
+
+@bp.post("/admin/refunds")
+@require_permission("payment:refund")
+def create_refund():
+    """Refund a payment: void its eBarimt receipt, return the money, free the seat.
+
+    Point at the payment however finance holds it — ``payment_id``,
+    ``payment_token``, ``invoice_id``, ``receipt_id``, ``ebarimt_id`` (ДДТД) or
+    ``lottery`` ("HQ 92232007"). Amount is ``amount`` or ``pct_attended``.
+    """
+    data = body()
+    if not any(data.get(k) for k in refund_svc.REFERENCE_KEYS):
+        data = {**data, **refund_svc.detect_reference(data.get("ref"))}
+    return jsonify(refund_svc.refund(data))
+
+
 @bp.post("/admin/payments/<int:payment_id>/refund")
 @require_permission("payment:refund")
 def refund_payment(payment_id):
-    data = body()
-    payment = pay_svc.refund(
-        pay_svc.get_payment(payment_id),
-        pct_attended=data.get("pct_attended"), amount=data.get("amount"))
-    return jsonify(payment.to_dict())
+    """Same refund, addressed by payment id. Kept for callers that already hold
+    one; the body is identical minus the reference."""
+    return jsonify(refund_svc.refund({**body(), "payment_id": payment_id}))
 
 
 @bp.post("/admin/payments/reconcile/golomt")

@@ -10,6 +10,10 @@ services:
     container_name: aiaa-app
     restart: unless-stopped
     env_file: .env
+    environment:
+      # Also set in the Dockerfile; repeated here so a container started from an
+      # older image still logs Mongolian time.
+      TZ: ${TZ:-Asia/Ulaanbaatar}
     # Bind to localhost only — host nginx is the public entrypoint.
     ports:
       - "127.0.0.1:8000:8000"
@@ -32,6 +36,8 @@ services:
     container_name: aiaa-ebarimt-sender
     restart: unless-stopped
     env_file: .env
+    environment:
+      TZ: ${TZ:-Asia/Ulaanbaatar}
     # Same reason as `app`: PosAPI lives on the host, and `localhost` in here is
     # this container. Without it every tick fails with posapi_unreachable.
     extra_hosts:
@@ -69,6 +75,7 @@ services:
     container_name: aiaa-postgres
     restart: unless-stopped
     environment:
+      TZ: ${TZ:-Asia/Ulaanbaatar}
       POSTGRES_USER: ${POSTGRES_USER:-aiaa}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aiaa_dev_password}
       POSTGRES_DB: ${POSTGRES_DB:-aiaa}

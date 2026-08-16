@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from app.extensions import db
+from app.timeutil import iso
 
 ENROLLMENT_STATUSES = ("active", "cancelled")
 
@@ -44,8 +45,8 @@ class Enrollment(db.Model):
             "status": self.status,
             "created_via": self.created_via,
             "created_by_admin_id": self.created_by_admin_id,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "created_at": iso(self.created_at),
+            "completed_at": iso(self.completed_at),
         }
         if with_student and self.student is not None:
             s = self.student

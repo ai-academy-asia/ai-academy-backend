@@ -11,6 +11,7 @@ from app.models import (
     Enrollment,
     Teacher,
 )
+from app.timeutil import iso
 
 from .errors import ServiceError
 
@@ -107,8 +108,8 @@ def _find_conflict(column, value, cohort):
 def _conflict_payload(clash):
     return {
         "cohort_id": clash.id, "name": clash.name,
-        "start_date": clash.start_date.isoformat() if clash.start_date else None,
-        "end_date": clash.end_date.isoformat() if clash.end_date else None,
+        "start_date": iso(clash.start_date),
+        "end_date": iso(clash.end_date),
         "meeting_days": clash.meeting_days,
         "start_time": clash.start_time, "end_time": clash.end_time,
     }

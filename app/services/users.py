@@ -5,6 +5,7 @@ from app.auth import revoke_all_for_account
 from app.auth.service import AccountError, provision_account
 from app.extensions import db
 from app.models import ACTOR_STUDENT, ACTOR_TEACHER, AuthAccount, Student, Teacher
+from app.timeutil import iso
 
 from .errors import ServiceError
 
@@ -41,7 +42,7 @@ def account_dict(account):
         "actor_type": account.actor_type,
         "is_active": account.is_active,
         "must_change_password": account.must_change_password,
-        "last_login_at": account.last_login_at.isoformat() if account.last_login_at else None,
+        "last_login_at": iso(account.last_login_at),
     }
 
 

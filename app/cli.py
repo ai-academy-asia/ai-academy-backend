@@ -190,8 +190,8 @@ def seed_courses(publish, path):
         f"cohorts: +{result['cohorts']} new"
         + ("  [published]" if publish else "  [draft — use --publish to expose]")
     )
-    for item in result["needs_mnt_price"]:
-        click.echo(f"  ! priced in USD, needs an MNT figure before it can be sold: {item}")
+    for item in result["converted_from_usd"]:
+        click.echo(f"  · quoted in USD, stored in MNT at USD_MNT_RATE: {item}")
 
 
 def register_cli(app) -> None:

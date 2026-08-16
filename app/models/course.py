@@ -2,6 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from app.extensions import db
+from app.timeutil import iso
 
 # Publication lifecycle. Only non-draft courses are visible to the public.
 COURSE_STATUSES = ("draft", "open", "closed")
@@ -112,8 +113,8 @@ class Course(db.Model):
             "target_audience": self.target_audience,
             "age_min": self.age_min,
             "age_max": self.age_max,
-            "start_date": self.start_date.isoformat() if self.start_date else None,
-            "end_date": self.end_date.isoformat() if self.end_date else None,
+            "start_date": iso(self.start_date),
+            "end_date": iso(self.end_date),
             "duration_weeks": self.duration_weeks,
             "duration_label": self.duration_label,
             "format": self.format,
@@ -147,8 +148,8 @@ class Course(db.Model):
                 "cert_template_name": self.cert_template_name,
                 "has_contract_template": self.contract_template_key is not None,
                 "contract_template_name": self.contract_template_name,
-                "created_at": self.created_at.isoformat() if self.created_at else None,
-                "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+                "created_at": iso(self.created_at),
+                "updated_at": iso(self.updated_at),
             }
         )
         return data

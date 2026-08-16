@@ -45,14 +45,37 @@ def _slug(*parts: str) -> str:
 
 
 def _money(text: str) -> tuple[Decimal | None, str]:
-    """('17,900,000₮') -> (17900000, 'MNT'); ('$1,600') -> (1600, 'USD')."""
+    """('17,900,000₮') -> (17900000, 'MNT'); ('$1,600') -> (5760000, 'MNT').
+
+    The catalogue quotes some programmes in dollars, but nothing downstream can
+    take a dollar: QPay bills MNT, the ledger is MNT, and an eBarimt receipt has
+    no currency field at all. A USD row is therefore not a price, it is a course
+    that cannot be sold — enrolment answers 409 ``price_not_in_mnt``. So the
+    conversion happens here, once, at ``USD_MNT_RATE``, and the database holds
+    one currency. Discounts are untouched: a $2,000 fee at 20% off becomes
+    ₮7,200,000 at 20% off, which is the same sale in the buyer's money.
+    """
     if not text:
         return None, "MNT"
     digits = re.sub(r"[^\d.]", "", text)
     if not digits:
         return None, "MNT"
-    currency = "USD" if "$" in text else "MNT"
-    return Decimal(digits), currency
+    amount = Decimal(digits)
+    if "$" in text:
+        amount = (amount * _usd_rate()).quantize(Decimal("0.01"))
+    return amount, "MNT"
+
+
+def _usd_rate() -> Decimal:
+    """USD -> MNT, from config. Outside an app context (a plain import, a
+    script) the config default is unreachable, so the same figure is repeated
+    here rather than crashing a seed run."""
+    from flask import current_app
+
+    try:
+        return Decimal(str(current_app.config["USD_MNT_RATE"]))
+    except (RuntimeError, KeyError):
+        return Decimal("3600")
 
 
 def _percent(text: str) -> int:
@@ -108,7 +131,7 @@ def seed_courses(*, path: Path | None = None, publish: bool = False) -> dict:
         ).append(e)
 
     summary = {"courses": 0, "cohorts": 0, "schedule_ids": 0, "updated": 0,
-               "needs_mnt_price": []}
+               "converted_from_usd": []}
 
     for (title, type_, fmt, age), runs in groups.items():
         head = runs[0]
@@ -119,6 +142,7 @@ def seed_courses(*, path: Path | None = None, publish: bool = False) -> dict:
         # price and letting the discount apply again charges half.
         mnt_price, _ = _money(head.get("mntPrice"))
         discount = 0 if mnt_price is not None else _percent(head.get("discount", ""))
+        quoted_in_usd = mnt_price is None and "$" in (head.get("fee") or "")
         if mnt_price is not None:
             amount, currency = mnt_price, "MNT"
         else:
@@ -157,8 +181,10 @@ def seed_courses(*, path: Path | None = None, publish: bool = False) -> dict:
             course.status = "draft"
         db.session.flush()
 
-        if currency != "MNT":
-            summary["needs_mnt_price"].append(f"{title} ({head.get('fee')})")
+        if quoted_in_usd:
+            summary["converted_from_usd"].append(
+                f"{title}: {head.get('fee')} -> {amount:,.0f}₮"
+            )
 
         for run in runs:
             start = _iso(run.get("startDate"))

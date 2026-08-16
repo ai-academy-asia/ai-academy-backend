@@ -2006,6 +2006,58 @@
               }
             },
             {
+              "name": "Refund lookup — дугаараар хайх (payment:refund)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/admin/refunds/lookup?ref=HQ 92232007",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "refunds",
+                    "lookup"
+                  ],
+                  "query": [
+                    {
+                      "key": "ref",
+                      "value": "HQ 92232007"
+                    }
+                  ]
+                },
+                "description": "Юу ч өөрчлөхгүй: бичсэн дугаарыг тааруулж, ард нь ямар борлуулалт байгааг буцаана — худалдан авагч, хөтөлбөр, суудал, төлсөн дүн, баримтын ДДТД/сугалаа, мөн бүтэн буцаалт хэдэн төгрөг болохыг (`refundable`).\n\n`ref` нь сугалаа (\"HQ 92232007\" эсвэл зөвхөн цифр), ДДТД, `pt_…` төлбөрийн токен эсвэл дотоод дугаар — сервер өөрөө тааруулна. Тодорхой түлхүүр (`?lottery=`, `?payment_id=` …) өгвөл таамаглалыг дарна.\n\nВэбийн ажилтны консол (/mn/admin/refund) буцаалт хийхийн өмнө үүнийг дууддаг."
+              }
+            },
+            {
+              "name": "Refund (мөнгө + eBarimt + суудал) (payment:refund)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/refunds",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "refunds"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"lottery\": \"HQ 92232007\",\n  \"amount\": 1000000,\n  \"void_receipt\": true,\n  \"reason\": \"Сургалтаас татгалзсан\"\n}"
+                },
+                "description": "Нэг дуудлагаар: eBarimt баримтыг хүчингүй болгож, мөнгийг буцааж, бүтэн буцаалт бол суудлыг чөлөөлнө.\n\nХайх түлхүүр (эхэнд байгаа нь ялна): payment_id, payment_token, invoice_id, receipt_id, ebarimt_id (ДДТД), lottery (\"HQ 92232007\" эсвэл зөвхөн цифр).\nДүн: amount (шууд) эсвэл pct_attended (пилот дүрэм: ирц <20% → 50%).\nvoid_receipt default true. Хэсэгчилсэн буцаалт (amount < төлсөн дүн) дээр eBarimt хагас баримт хүчингүй болгодоггүй тул: хуучин баримтыг бүтнээр нь буцааж, үлдсэн дүнгээр шинэ баримт өгнө (хариуны replacement_receipt, replaces_receipt_id-аар холбоотой). Хариунд steps талбар алхам бүр юу хийснийг хэлнэ; хагас дутуу үлдсэн бол яг ижил дуудлагыг дахин явуулж болно — буцаасан баримтыг дахин хүчингүй болгохгүй, нэг үлдэгдэлд хоёр баримт өгөхгүй."
+              }
+            },
+            {
               "name": "Refund payment (payment:refund)",
               "request": {
                 "method": "POST",
@@ -2031,7 +2083,7 @@
                   "mode": "raw",
                   "raw": "{\n  \"pct_attended\": 12\n}"
                 },
-                "description": "Пилот дүрэм: ирц <20% → 50% буцаана, ≥20% → 0. amount өгвөл дүнг шууд заана."
+                "description": "Ижил буцаалт, зөвхөн payment id-гаар хаяглана — /admin/refunds-тай адил биеийг хүлээж авна (reference-ээс бусад).\nПилот дүрэм: ирц <20% → 50% буцаана, ≥20% → 0. amount өгвөл дүнг шууд заана."
               }
             },
             {
@@ -2571,7 +2623,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"totalAmount\": 50000,\n  \"totalVAT\": 4545.45,\n  \"totalCityTax\": 0,\n  \"districtCode\": \"{{district_code}}\",\n  \"merchantTin\": \"{{merchant_tin}}\",\n  \"posNo\": \"{{pos_no}}\",\n  \"branchNo\": \"{{branch_no}}\",\n  \"type\": \"B2C_RECEIPT\",\n  \"receipts\": [\n    {\n      \"totalAmount\": 50000,\n      \"totalVAT\": 4545.45,\n      \"totalCityTax\": 0,\n      \"taxType\": \"VAT_ABLE\",\n      \"merchantTin\": \"{{merchant_tin}}\",\n      \"items\": [\n        {\n          \"name\": \"AIAA сургалтын төлбөр\",\n          \"barCode\": \"\",\n          \"barCodeType\": \"UNDEFINED\",\n          \"classificationCode\": \"6851000\",\n          \"measureUnit\": \"ш\",\n          \"qty\": 1,\n          \"unitPrice\": 50000,\n          \"totalAmount\": 50000,\n          \"totalVAT\": 4545.45,\n          \"totalCityTax\": 0\n        }\n      ]\n    }\n  ],\n  \"payments\": [\n    {\n      \"code\": \"BANK_TRANSFER\",\n      \"status\": \"PAID\",\n      \"paidAmount\": 50000\n    }\n  ]\n}"
+              "raw": "{\n  \"totalAmount\": 50000,\n  \"totalVAT\": 4545.45,\n  \"totalCityTax\": 0,\n  \"districtCode\": \"{{district_code}}\",\n  \"merchantTin\": \"{{merchant_tin}}\",\n  \"posNo\": \"{{pos_no}}\",\n  \"branchNo\": \"{{branch_no}}\",\n  \"type\": \"B2C_RECEIPT\",\n  \"receipts\": [\n    {\n      \"totalAmount\": 50000,\n      \"totalVAT\": 4545.45,\n      \"totalCityTax\": 0,\n      \"taxType\": \"VAT_ABLE\",\n      \"merchantTin\": \"{{merchant_tin}}\",\n      \"items\": [\n        {\n          \"name\": \"AIAA сургалтын төлбөр\",\n          \"barCode\": \"\",\n          \"barCodeType\": \"UNDEFINED\",\n          \"classificationCode\": \"9291900\",\n          \"measureUnit\": \"ш\",\n          \"qty\": 1,\n          \"unitPrice\": 50000,\n          \"totalAmount\": 50000,\n          \"totalVAT\": 4545.45,\n          \"totalCityTax\": 0\n        }\n      ]\n    }\n  ],\n  \"payments\": [\n    {\n      \"code\": \"BANK_TRANSFER\",\n      \"status\": \"PAID\",\n      \"paidAmount\": 50000\n    }\n  ]\n}"
             },
             "description": "⚠️ items[].barCodeType='UNDEFINED' ЗААВАЛ. Дутуу бол '<нэр> бүтээгдэхүүний barCode талбарын утга хоосон байна' гэсэн төөрөгдүүлсэн алдаа өгнө (гомдол нь barCode дээр биш)."
           }

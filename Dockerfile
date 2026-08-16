@@ -1,7 +1,12 @@
 FROM python:3.12-slim
 
+# Stored timestamps stay UTC (see app/timeutil.py); TZ is what the *container*
+# reads as now — log lines and anything printed as a wall clock. Left at the
+# image default (UTC) those read eight hours behind the office that files on
+# them. tzdata ships with the base image, so this is a variable, not a package.
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    TZ=Asia/Ulaanbaatar
 
 WORKDIR /app
 

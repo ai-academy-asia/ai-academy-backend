@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from app.extensions import db
+from app.timeutil import iso
 
 
 class Classroom(db.Model):
@@ -40,8 +41,8 @@ class Classroom(db.Model):
             "equipment": self.equipment,
             "is_active": self.is_active,
             "notes": self.notes,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "created_at": iso(self.created_at),
+            "updated_at": iso(self.updated_at),
         }
 
     def __repr__(self) -> str:

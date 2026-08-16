@@ -76,6 +76,13 @@ class Config:
     # Max upload size for a template file (bytes). Default 15 MB.
     MAX_TEMPLATE_BYTES = int(os.getenv("MAX_TEMPLATE_BYTES", str(15 * 1024 * 1024)))
 
+    # Rate used to store the catalogue's USD-quoted courses in MNT. Everything
+    # downstream — QPay, the ledger, the eBarimt receipt — is MNT-only, so a USD
+    # price is unsellable (enrolment answers 409 price_not_in_mnt). Seeding
+    # converts once, at this rate, rather than leaving the figure to be guessed
+    # at checkout. Move it when the pricing does, then re-run `flask seed courses`.
+    USD_MNT_RATE = os.getenv("USD_MNT_RATE", "3600")
+
     # --- Payments ---
     # Public origin used to build gateway callback URLs (must be reachable by the
     # provider's servers). Defaults to the live API host.
@@ -144,7 +151,10 @@ class Config:
     EBARIMT_BRANCH_NO = os.getenv("EBARIMT_BRANCH_NO", "")
     EBARIMT_DISTRICT_CODE = os.getenv("EBARIMT_DISTRICT_CODE", "")
     EBARIMT_POS_NO = os.getenv("EBARIMT_POS_NO")
-    EBARIMT_CLASSIFICATION_CODE = os.getenv("EBARIMT_CLASSIFICATION_CODE", "6851000")
+    # ҮАБТ ангиллын код for what we actually sell: 9291900 "Боловсролын бусад
+    # төрлийн сургалтын үйлчилгээ". The old 6851000 was a courier/post service —
+    # wrong line of business on every receipt issued under it.
+    EBARIMT_CLASSIFICATION_CODE = os.getenv("EBARIMT_CLASSIFICATION_CODE", "9291900")
     EBARIMT_TAX_PRODUCT_CODE = os.getenv("EBARIMT_TAX_PRODUCT_CODE", "")
     # Tax handling. VAT 10% is included in the price by default; set false if the
     # service is VAT-exempt. City tax rate (%) on the net; 0 for tuition.

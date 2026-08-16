@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from app.extensions import db
+from app.timeutil import iso
 
 # eBarimt receipt kind. Mirrors PosAPI billType: "1" = individual (B2C),
 # "3" = organization (B2B, needs the customer's tax register number).
@@ -33,6 +34,13 @@ class EBarimtReceipt(db.Model):
     )
     invoice_id = db.Column(
         db.Integer, db.ForeignKey("invoices.id", ondelete="SET NULL"), index=True
+    )
+    # Set on the receipt issued for what a buyer kept after a partial refund.
+    # eBarimt cannot void half a receipt: the original is returned whole and the
+    # remaining sale needs a receipt of its own — this is the link back to the
+    # one it replaces, so the pair reads as one corrected sale in the audit trail.
+    replaces_receipt_id = db.Column(
+        db.Integer, db.ForeignKey("ebarimt_receipts.id", ondelete="SET NULL"), index=True
     )
 
     type = db.Column(db.String(20), nullable=False, default="B2C_RECEIPT")
@@ -71,6 +79,7 @@ class EBarimtReceipt(db.Model):
             "id": self.id,
             "payment_id": self.payment_id,
             "invoice_id": self.invoice_id,
+            "replaces_receipt_id": self.replaces_receipt_id,
             "type": self.type,
             "customer_register": self.customer_register,
             "total_amount": float(self.total_amount) if self.total_amount is not None else None,
@@ -83,10 +92,10 @@ class EBarimtReceipt(db.Model):
             "ebarimt_id": self.ebarimt_id,
             "lottery": self.lottery,
             "qr_data": self.qr_data,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "issued_at": self.issued_at.isoformat() if self.issued_at else None,
-            "returned_at": self.returned_at.isoformat() if self.returned_at else None,
-            "emailed_at": self.emailed_at.isoformat() if self.emailed_at else None,
+            "created_at": iso(self.created_at),
+            "issued_at": iso(self.issued_at),
+            "returned_at": iso(self.returned_at),
+            "emailed_at": iso(self.emailed_at),
             "emailed_to": self.emailed_to,
             "email_error": self.email_error,
         }

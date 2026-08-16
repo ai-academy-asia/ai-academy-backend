@@ -2,6 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from app.extensions import db
+from app.timeutil import iso
 
 # Installment lifecycle.
 #   pending — scheduled, not yet due-settled
@@ -50,10 +51,10 @@ class PaymentInstallment(db.Model):
             "enrollment_id": self.enrollment_id,
             "student_id": self.student_id,
             "seq": self.seq,
-            "due_date": self.due_date.isoformat() if self.due_date else None,
+            "due_date": iso(self.due_date),
             "amount": float(self.amount) if self.amount is not None else None,
             "status": self.status,
-            "paid_at": self.paid_at.isoformat() if self.paid_at else None,
+            "paid_at": iso(self.paid_at),
         }
 
     def __repr__(self) -> str:
@@ -105,8 +106,8 @@ class StudentLedger(db.Model):
             "total_paid": float(self.total_paid or 0),
             "balance": float(self.balance or 0),
             "currency": self.currency,
-            "next_due_date": self.next_due_date.isoformat() if self.next_due_date else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "next_due_date": iso(self.next_due_date),
+            "updated_at": iso(self.updated_at),
         }
 
     def __repr__(self) -> str:

@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from app.extensions import db
+from app.timeutil import iso
 
 # draft = not visible; open = accepting enrollment; closed = not accepting.
 COHORT_STATUSES = ("draft", "open", "closed")
@@ -94,9 +95,9 @@ class Cohort(db.Model):
                 "title_en": course.title_en,
             } if course else None,
             "parent_cohort_id": self.parent_cohort_id,
-            "start_date": self.start_date.isoformat() if self.start_date else None,
-            "end_date": self.end_date.isoformat() if self.end_date else None,
-            "graduation_date": self.graduation_date.isoformat() if self.graduation_date else None,
+            "start_date": iso(self.start_date),
+            "end_date": iso(self.end_date),
+            "graduation_date": iso(self.graduation_date),
             "meeting_days": self.meeting_days,
             "start_time": self.start_time,
             "end_time": self.end_time,
@@ -115,8 +116,8 @@ class Cohort(db.Model):
             } if classroom else None,
         }
         if detail:
-            data["created_at"] = self.created_at.isoformat() if self.created_at else None
-            data["updated_at"] = self.updated_at.isoformat() if self.updated_at else None
+            data["created_at"] = iso(self.created_at)
+            data["updated_at"] = iso(self.updated_at)
         return data
 
     def __repr__(self) -> str:

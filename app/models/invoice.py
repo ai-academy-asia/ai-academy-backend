@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from app.extensions import db
+from app.timeutil import iso
 
 # Which gateway a given invoice is routed through. Kept as a plain string (not an
 # enum type) to match the rest of the schema and to add providers without a migration.
@@ -91,9 +92,9 @@ class Invoice(db.Model):
             "provider_invoice_id": self.provider_invoice_id,
             "payment_url": self.payment_url,
             "urls": self.urls,
-            "expires_at": self.expires_at.isoformat() if self.expires_at else None,
-            "paid_at": self.paid_at.isoformat() if self.paid_at else None,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "expires_at": iso(self.expires_at),
+            "paid_at": iso(self.paid_at),
+            "created_at": iso(self.created_at),
         }
         if with_qr:
             data["qr_text"] = self.qr_text

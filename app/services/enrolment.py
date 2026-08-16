@@ -36,6 +36,7 @@ from app.models import (
     new_payment_token,
 )
 from app.models.enrolment import DEFAULT_HOLD_MINUTES
+from app.timeutil import iso
 
 from . import ebarimt as ebarimt_svc
 from . import payments as pay_svc
@@ -229,8 +230,8 @@ def _programme(course: Course, cohort: Cohort | None, locale: str) -> dict:
         "time_label": time_label,
         "duration_label": course.duration_label,
         "active_days": active_days,
-        "start_date": start_date.isoformat() if start_date else None,
-        "end_date": end_date.isoformat() if end_date else None,
+        "start_date": iso(start_date),
+        "end_date": iso(end_date),
         "total_classes": 0,
         "currency": course.currency or "MNT",
         "fee": float(fee),
@@ -488,7 +489,9 @@ def book_seat(course_id, body: dict) -> SeatBooking:
     if cohort.status not in BOOKABLE_COHORT_STATUSES:
         raise ServiceError(409, "schedule_not_bookable")
 
+    _retire_lapsed_holds(cohort)
     booking = _build_booking(request, cohort, body)
+    seat = booking.number_of_seat
     request.status = "booked"
     db.session.add(booking)
     try:
@@ -498,14 +501,38 @@ def book_seat(course_id, body: dict) -> SeatBooking:
         # partial unique index is what makes that a rejection instead of a
         # double sale; retry once against a freshly-read seat map.
         db.session.rollback()
-        return _rebook_next_free(request, cohort, body)
+        return _rebook_next_free(request, cohort, body, seat)
     return booking
 
 
-def _build_booking(request: ClassroomRequest, cohort: Cohort, body: dict) -> SeatBooking:
+def _retire_lapsed_holds(cohort: Cohort) -> int:
+    """Retire this run's lapsed holds before anyone counts its seats.
+
+    ``_seat_counts`` treats an expired hold as free, but the partial unique
+    index does not — it keys on ``status in ('held','paid')``, so a lapsed row
+    still owns its seat number in the database. Left standing, every booking is
+    handed a seat the index then refuses, and the buyer is told the run is full
+    when it is empty. ``release_expired_holds`` fixes the same drift, but it
+    only runs on the hourly tick — the checkout cannot wait for it.
+    """
+    freed = SeatBooking.query.filter(
+        SeatBooking.cohort_id == cohort.id,
+        SeatBooking.status == "held",
+        SeatBooking.expires_at.isnot(None),
+        SeatBooking.expires_at < datetime.utcnow(),
+    ).update({"status": "released"}, synchronize_session=False)
+    if freed:
+        db.session.commit()
+    return freed
+
+
+def _build_booking(
+    request: ClassroomRequest, cohort: Cohort, body: dict, taken: set | None = None
+) -> SeatBooking:
     """A held seat priced by the server. Raises 409 when the run is full."""
     _, seats, paid, held = _seat_counts(cohort)
-    free = [s for s in seats if s not in set(paid) | set(held)]
+    occupied = set(paid) | set(held) | (taken or set())
+    free = [s for s in seats if s not in occupied]
     if not free:
         raise ServiceError(409, "no_seats_left")
 
@@ -540,10 +567,22 @@ def _build_booking(request: ClassroomRequest, cohort: Cohort, body: dict) -> Sea
     )
 
 
-def _rebook_next_free(request: ClassroomRequest, cohort: Cohort, body: dict) -> SeatBooking:
+def _rebook_next_free(
+    request: ClassroomRequest, cohort: Cohort, body: dict, collided: int | None = None
+) -> SeatBooking:
     """One retry after a seat race. A second collision means the run really is
-    full — better a clear 409 than an unbounded loop under contention."""
-    booking = _build_booking(request, cohort, {**body, "number_of_seat": None})
+    full — better a clear 409 than an unbounded loop under contention.
+
+    The seat that just collided is excluded by hand: the winning transaction may
+    not be visible to our fresh read yet, and re-picking the same number would
+    make the retry fail exactly as the first attempt did.
+    """
+    booking = _build_booking(
+        request, cohort, {**body, "number_of_seat": None},
+        taken={collided} if collided else None,
+    )
+    # The rollback undid this too, and the row is about to have a booking again.
+    request.status = "booked"
     db.session.add(booking)
     try:
         db.session.commit()

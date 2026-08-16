@@ -390,27 +390,45 @@ def get_ledger(enrollment_id) -> StudentLedger:
 
 
 # ------------------------------------------------------------------- refunds
-def refund(payment: Payment, *, pct_attended: int | None = None, amount=None) -> Payment:
-    """Apply a refund. Pilot rule: attendance <20% → 50% back, ≥20% → nothing.
+def compute_refund_amount(payment: Payment, *, pct_attended=None, amount=None) -> Decimal:
+    """How much of ``payment`` goes back, without touching anything.
 
-    ``amount`` overrides the computed refund (finance discretion). Recomputes the
-    ledger afterward.
+    Split out of :func:`refund` because the eBarimt side has to know the figure
+    *before* the money moves: whether the tax receipt is voided outright or
+    voided and re-issued for the remainder depends on what the buyer keeps, and
+    the PosAPI call has to run before the database write (see
+    :mod:`app.services.refunds`).
     """
-    if payment.status == "refunded":
-        raise ServiceError(409, "already_refunded")
     original = payment.amount or Decimal(0)
-
     if amount is not None:
         refund_amount = _to_amount(amount)
         if refund_amount > original:
             raise ServiceError(400, "refund_exceeds_payment")
-    elif pct_attended is not None:
-        refund_amount = (original * Decimal("0.5")) if pct_attended < 20 else Decimal(0)
-    else:
-        raise ServiceError(400, "refund_basis_required")
+        return refund_amount
+    if pct_attended is not None:
+        return (original * Decimal("0.5")) if int(pct_attended) < 20 else Decimal(0)
+    raise ServiceError(400, "refund_basis_required")
+
+
+def refund(
+    payment: Payment, *, pct_attended: int | None = None, amount=None, reason=None
+) -> Payment:
+    """Apply a refund. Pilot rule: attendance <20% → 50% back, ≥20% → nothing.
+
+    ``amount`` overrides the computed refund (finance discretion). Recomputes the
+    ledger afterward.
+
+    Money only — the tax receipt and the seat are the caller's business. Go
+    through :mod:`app.services.refunds` unless you mean to touch just this row.
+    """
+    if payment.status == "refunded":
+        raise ServiceError(409, "already_refunded")
+    original = payment.amount or Decimal(0)
+    refund_amount = compute_refund_amount(payment, pct_attended=pct_attended, amount=amount)
 
     payment.refunded_amount = refund_amount
     payment.refund_pct_attended = pct_attended
+    payment.refund_reason = (str(reason).strip()[:255] or None) if reason else None
     payment.refunded_at = datetime.utcnow()
     payment.status = "refunded" if refund_amount >= original else "partially_refunded"
     db.session.flush()

@@ -19,6 +19,8 @@ from pathlib import Path
 
 import segno
 
+from app.timeutil import local
+
 _TYPE_LABEL = {"B2C_RECEIPT": "Хувь хүн", "B2B_RECEIPT": "Байгууллага"}
 
 # Rendered width of the logo; height follows the source aspect ratio (3.21:1).
@@ -97,7 +99,8 @@ def build_receipt_email(receipt, *, to: str, merchant_name: str,
                         logo_path: str | None = None) -> EmailMessage:
     """A ready-to-send receipt email. Raises nothing — validation is the caller's."""
     logo = _read_logo(logo_path)
-    issued = receipt.issued_at or receipt.created_at
+    # Stored UTC, read by a buyer in Ulaanbaatar: print their wall clock, not ours.
+    issued = local(receipt.issued_at or receipt.created_at)
     date_str = issued.strftime("%Y-%m-%d") if issued else "-"
     time_str = issued.strftime("%H:%M:%S") if issued else "-"
     items = _items_from(receipt)

@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from app.extensions import db
+from app.timeutil import iso
 
 # A Payment row records a *settled* movement of money against an invoice.
 #   paid                 — fully settled
@@ -42,6 +43,7 @@ class Payment(db.Model):
     # --- refunds ---
     refunded_amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     refund_pct_attended = db.Column(db.Integer)  # attendance % at refund time (business rule)
+    refund_reason = db.Column(db.String(255))    # free text, for the finance audit trail
     refunded_at = db.Column(db.DateTime)
 
     raw = db.Column(db.JSON)  # verified gateway payload (callback / check / statement row)
@@ -64,11 +66,12 @@ class Payment(db.Model):
             "currency": self.currency,
             "status": self.status,
             "method": self.method,
-            "paid_at": self.paid_at.isoformat() if self.paid_at else None,
+            "paid_at": iso(self.paid_at),
             "refunded_amount": float(self.refunded_amount or 0),
             "refund_pct_attended": self.refund_pct_attended,
-            "refunded_at": self.refunded_at.isoformat() if self.refunded_at else None,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "refund_reason": self.refund_reason,
+            "refunded_at": iso(self.refunded_at),
+            "created_at": iso(self.created_at),
         }
 
     def __repr__(self) -> str:

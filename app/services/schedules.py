@@ -5,6 +5,7 @@ from datetime import date
 
 from app.extensions import db
 from app.models import Classroom, Cohort, Enrollment, Teacher
+from app.timeutil import iso
 
 from .errors import ServiceError
 
@@ -23,8 +24,8 @@ def parse_range(raw_from, raw_to):
 
 def range_meta(from_date, to_date):
     return {
-        "from": from_date.isoformat() if from_date else None,
-        "to": to_date.isoformat() if to_date else None,
+        "from": iso(from_date),
+        "to": iso(to_date),
     }
 
 
