@@ -47,6 +47,17 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
 
+    # --- Database credentials (RDS rotates the master password every 7 days) ---
+    # ARN (or plain name) of the Secrets Manager secret holding the RDS master
+    # username/password. Set it in production and the password inside
+    # DATABASE_URL becomes a fallback only: app/db_secret.py reads the live one
+    # per connection, so a rotation no longer takes the API down. Leave unset
+    # locally, where the Docker Postgres password is the real one.
+    DB_SECRET_ARN = os.getenv("DB_SECRET_ARN")
+    # How long a read password is trusted before re-reading. Short enough to
+    # bound drift, long enough that Secrets Manager is not on the request path.
+    DB_SECRET_TTL = int(os.getenv("DB_SECRET_TTL", str(15 * 60)))
+
     # --- Auth / JWT ---
     # Falls back to SECRET_KEY if JWT_SECRET is not set separately.
     JWT_SECRET = os.getenv("JWT_SECRET") or SECRET_KEY

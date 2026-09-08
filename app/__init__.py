@@ -55,6 +55,13 @@ def create_app(config_class: type = Config) -> Flask:
     db.init_app(app)
     migrate.init_app(app, db)
 
+    # Keep the DB password current across RDS's 7-day rotation. Must run before
+    # anything opens a connection — `flask db upgrade` does, on every boot.
+    # No-op unless DB_SECRET_ARN is set.
+    from .db_secret import install as install_db_secret
+
+    install_db_secret(app)
+
     # Register models so Flask-Migrate can discover them
     from . import models  # noqa: F401
 
