@@ -37,6 +37,23 @@ def iso(value: datetime | date | None) -> str | None:
     return value.isoformat()
 
 
+def from_local(text: str | None) -> datetime | None:
+    """A Mongolian wall-clock string (``"2026-08-17 11:07:23"``) as stored UTC.
+
+    The tax authority reports the moment it wrote a receipt in its own clock and
+    without an offset. Keeping that figure verbatim would put a local time in a
+    column every other row holds UTC in — off by eight hours, and only visible
+    when someone compares a receipt to the payment that produced it.
+    """
+    if not text:
+        return None
+    try:
+        naive = datetime.strptime(str(text).strip(), "%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return None
+    return naive.replace(tzinfo=LOCAL_TZ).astimezone(timezone.utc).replace(tzinfo=None)
+
+
 def local(value: datetime | None) -> datetime | None:
     """A stored UTC timestamp as Mongolian wall-clock time, for human text."""
     if value is None:

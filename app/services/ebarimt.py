@@ -32,6 +32,7 @@ from app.models import (
     SeatBooking,
     Student,
 )
+from app.timeutil import from_local, local
 from app.utils import dig
 
 from .errors import ServiceError, from_integration_error
@@ -293,7 +294,12 @@ def _send_to_posapi(receipt: EBarimtReceipt, payload: dict, *, client: PosAPICli
     receipt.ebarimt_id = str(ddtd)
     receipt.lottery = resp.get("lottery")
     receipt.qr_data = resp.get("qrData") or resp.get("qr_data")
-    receipt.issued_at = datetime.utcnow()
+    # The receipt exists at the moment the tax authority says it does, not the
+    # moment our HTTP call returned. Storing our own clock leaves the two
+    # disagreeing by however long the round trip took — and every later
+    # comparison (a void's date, a reconciliation, "when was this sold?") is
+    # then off by that much. Fall back to ours only if the response has none.
+    receipt.issued_at = from_local(resp.get("date")) or datetime.utcnow()
     receipt.raw = {"request": payload, "response": resp}
 
 
@@ -513,13 +519,36 @@ def flush_to_tax_authority() -> dict:
 
 
 # ------------------------------------------------------------------- returns
+def issued_at_for_posapi(receipt: EBarimtReceipt) -> str | None:
+    """When the receipt was created, in the clock the PosAPI keeps.
+
+    A void names the receipt it undoes by id *and* by the moment that receipt
+    was written. Getting that moment wrong is not a formatting detail: the
+    return is filed against a sale the tax authority timestamps differently, and
+    ours are stored in UTC — handing `issued_at` over as-is would date every
+    void eight hours before the receipt it cancels.
+
+    So the figure PosAPI itself reported is preferred, verbatim: it is already
+    the right clock and the right format. Only when that is missing (an older
+    row, a re-issued one) is the stored UTC converted to Mongolian time.
+    """
+    raw = receipt.raw if isinstance(receipt.raw, dict) else {}
+    stamped = dig(raw, "response", "date")
+    if isinstance(stamped, str) and stamped.strip():
+        return stamped.strip()
+    when = local(receipt.issued_at or receipt.created_at)
+    return when.strftime("%Y-%m-%d %H:%M:%S") if when else None
+
+
 def return_receipt(receipt: EBarimtReceipt) -> EBarimtReceipt:
     """Void a receipt (e.g. on refund). Temp receipts are voided locally."""
     if receipt.status == "returned":
         raise ServiceError(409, "already_returned")
     if not receipt.is_temp_mode and receipt.ebarimt_id:
         try:
-            _posapi().return_receipt(receipt.ebarimt_id)
+            _posapi().return_receipt(
+                receipt.ebarimt_id, date=issued_at_for_posapi(receipt)
+            )
         except EBarimtError as exc:
             raise _as_service_error(exc) from exc
     receipt.status = "returned"
