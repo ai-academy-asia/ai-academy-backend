@@ -270,7 +270,7 @@ def _persist_or_void(receipt: EBarimtReceipt) -> None:
             try:
                 _posapi().return_receipt(ddtd)
             except EBarimtError:
-                current_app.logger.error(
+                current_app.logger.exception(
                     "eBarimt receipt %s was issued but neither stored nor voided — "
                     "void it by hand at the PosAPI", ddtd,
                 )

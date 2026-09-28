@@ -134,90 +134,101 @@ def seed_courses(*, path: Path | None = None, publish: bool = False) -> dict:
                "converted_from_usd": []}
 
     for (title, type_, fmt, age), runs in groups.items():
-        head = runs[0]
-        slug = _slug(title, type_, age)
-        # `mntPrice` is the MNT figure for `finalFee` — the price AFTER the
-        # discount, not before it (301: fee $2,000, discount 50%, finalFee
-        # $1,000, mntPrice ₮3,560,000 = $1,000 x 3,560). Storing it as the list
-        # price and letting the discount apply again charges half.
-        mnt_price, _ = _money(head.get("mntPrice"))
-        discount = 0 if mnt_price is not None else _percent(head.get("discount", ""))
-        quoted_in_usd = mnt_price is None and "$" in (head.get("fee") or "")
-        if mnt_price is not None:
-            amount, currency = mnt_price, "MNT"
-        else:
-            amount, currency = _money(head.get("fee"))
-        age_min, age_max = _ages(head.get("age", ""))
-
-        course = Course.query.filter_by(slug=slug).first()
-        if course is None:
-            course = Course(slug=slug)
-            db.session.add(course)
-            summary["courses"] += 1
-        else:
-            summary["updated"] += 1
-
-        course.title_mn = title
-        course.title_en = title
-        course.level = _LEVEL.get(type_)
-        course.format = _FORMAT.get(fmt)
-        course.category = head.get("cohort")          # spring | summer
-        course.target_audience = head.get("age")
-        course.age_min, course.age_max = age_min, age_max
-        course.duration_label = head.get("duration")
-        course.price_amount = amount
-        course.currency = currency
-        course.discount_percent = discount
-        course.whats_included = head.get("features") or []
-        course.icon = head.get("badge")
-        course.capacity = head.get("maxStudents")
-        course.start_date = _iso(head.get("startDate"))
-        course.end_date = _iso(head.get("endDate"))
-        course.sort_order = head.get("num")
-        course.legacy_course_id = head.get("backendCourseId")
-        if publish:
-            course.status = "published"
-        elif not course.status:
-            course.status = "draft"
-        db.session.flush()
-
-        if quoted_in_usd:
-            summary["converted_from_usd"].append(
-                f"{title}: {head.get('fee')} -> {amount:,.0f}₮"
-            )
-
+        course = _upsert_course(title, type_, fmt, age, runs[0], publish, summary)
         for run in runs:
-            start = _iso(run.get("startDate"))
-            start_time, end_time = _times(run.get("time", ""))
-            days = [_DAY_CODES[d] for d in run.get("activeDays", []) if d in _DAY_CODES]
-
-            cohort = Cohort.query.filter_by(
-                course_id=course.id, start_date=start, start_time=start_time
-            ).first()
-            if cohort is None:
-                cohort = Cohort(course_id=course.id)
-                db.session.add(cohort)
-                summary["cohorts"] += 1
-
-            label = " ".join(filter(None, [run.get("classType"), age]))
-            cohort.name = f"{title} {start.isoformat() if start else ''} {label}".strip()
-            cohort.start_date = start
-            cohort.end_date = _iso(run.get("endDate"))
-            cohort.capacity = run.get("maxStudents")
-            cohort.meeting_days = days
-            cohort.start_time, cohort.end_time = start_time, end_time
-            cohort.schedule_note = run.get("time")   # keep the compound original
-            cohort.legacy_schedule_id = run.get("backendScheduleId")
-            cohort.legacy_course_id = run.get("backendCourseId")
-            db.session.flush()   # need cohort.id for the schedule-id map
-            summary["schedule_ids"] += _map_legacy_schedules(cohort, run)
-            if publish:
-                cohort.status = "open"
-            elif not cohort.status:
-                cohort.status = "draft"
+            _upsert_cohort(course, title, age, run, publish, summary)
 
     db.session.commit()
     return summary
+
+
+def _price(head: dict) -> tuple[Decimal | None, str, int, bool]:
+    """(amount, currency, discount %, quoted in USD) for one catalogue entry.
+
+    ``mntPrice`` is the MNT figure for ``finalFee`` — the price AFTER the
+    discount, not before it (301: fee $2,000, discount 50%, finalFee $1,000,
+    mntPrice ₮3,560,000 = $1,000 x 3,560). Storing it as the list price and
+    letting the discount apply again charges half.
+    """
+    mnt_price, _ = _money(head.get("mntPrice"))
+    if mnt_price is not None:
+        return mnt_price, "MNT", 0, False
+    amount, currency = _money(head.get("fee"))
+    quoted_in_usd = "$" in (head.get("fee") or "")
+    return amount, currency, _percent(head.get("discount", "")), quoted_in_usd
+
+
+def _upsert_course(title, type_, fmt, age, head, publish, summary) -> Course:
+    slug = _slug(title, type_, age)
+    amount, currency, discount, quoted_in_usd = _price(head)
+    age_min, age_max = _ages(head.get("age", ""))
+
+    course = Course.query.filter_by(slug=slug).first()
+    if course is None:
+        course = Course(slug=slug)
+        db.session.add(course)
+        summary["courses"] += 1
+    else:
+        summary["updated"] += 1
+
+    course.title_mn = title
+    course.title_en = title
+    course.level = _LEVEL.get(type_)
+    course.format = _FORMAT.get(fmt)
+    course.category = head.get("cohort")          # spring | summer
+    course.target_audience = head.get("age")
+    course.age_min, course.age_max = age_min, age_max
+    course.duration_label = head.get("duration")
+    course.price_amount = amount
+    course.currency = currency
+    course.discount_percent = discount
+    course.whats_included = head.get("features") or []
+    course.icon = head.get("badge")
+    course.capacity = head.get("maxStudents")
+    course.start_date = _iso(head.get("startDate"))
+    course.end_date = _iso(head.get("endDate"))
+    course.sort_order = head.get("num")
+    course.legacy_course_id = head.get("backendCourseId")
+    if publish:
+        course.status = "published"
+    elif not course.status:
+        course.status = "draft"
+    db.session.flush()
+
+    if quoted_in_usd:
+        summary["converted_from_usd"].append(f"{title}: {head.get('fee')} -> {amount:,.0f}₮")
+    return course
+
+
+def _upsert_cohort(course: Course, title: str, age: str, run: dict, publish, summary) -> None:
+    start = _iso(run.get("startDate"))
+    start_time, end_time = _times(run.get("time", ""))
+    days = [_DAY_CODES[d] for d in run.get("activeDays", []) if d in _DAY_CODES]
+
+    cohort = Cohort.query.filter_by(
+        course_id=course.id, start_date=start, start_time=start_time
+    ).first()
+    if cohort is None:
+        cohort = Cohort(course_id=course.id)
+        db.session.add(cohort)
+        summary["cohorts"] += 1
+
+    label = " ".join(filter(None, [run.get("classType"), age]))
+    cohort.name = f"{title} {start.isoformat() if start else ''} {label}".strip()
+    cohort.start_date = start
+    cohort.end_date = _iso(run.get("endDate"))
+    cohort.capacity = run.get("maxStudents")
+    cohort.meeting_days = days
+    cohort.start_time, cohort.end_time = start_time, end_time
+    cohort.schedule_note = run.get("time")   # keep the compound original
+    cohort.legacy_schedule_id = run.get("backendScheduleId")
+    cohort.legacy_course_id = run.get("backendCourseId")
+    db.session.flush()   # need cohort.id for the schedule-id map
+    summary["schedule_ids"] += _map_legacy_schedules(cohort, run)
+    if publish:
+        cohort.status = "open"
+    elif not cohort.status:
+        cohort.status = "draft"
 
 
 # Which static field is which payment terms, and what share of the price it

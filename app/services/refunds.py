@@ -128,50 +128,14 @@ def refund(data: dict) -> dict:
     that leaves the tax receipt standing has to be asked for.
     """
     payment, receipt = resolve(data)
-    steps = {}
     void = _as_bool(data.get("void_receipt", True))
     kept = _kept_after_refund(payment, data)
     issued_ids = _receipt_ids_of(payment)
 
-    # 1. Tax first — see the module docstring on ordering.
-    if receipt is None:
-        steps["receipt"] = "none"
-    elif not void:
-        steps["receipt"] = "kept"
-    elif receipt.status == "returned":
-        steps["receipt"] = "already_returned"
-    elif receipt.status == "failed":
-        # Never accepted by the PosAPI, so there is nothing to void.
-        steps["receipt"] = "skipped_not_issued"
-    elif kept > 0 and Decimal(str(receipt.total_amount)) == kept:
-        # Already the replacement this same refund would issue — a retry, not a
-        # second refund. Voiding it would undo the correction.
-        steps["receipt"] = "already_corrected"
-    else:
-        ebarimt_svc.return_receipt(receipt)
-        steps["receipt"] = "returned"
-
-    # 2. Money.
-    if payment.status == "refunded":
-        steps["payment"] = "already_refunded"
-    else:
-        pay_svc.refund(
-            payment,
-            pct_attended=_as_int(data.get("pct_attended")),
-            amount=data.get("amount"),
-            reason=data.get("reason"),
-        )
-        steps["payment"] = payment.status
-
-    # 2b. The kept half needs a receipt of its own.
-    replacement = None
-    if receipt is None or not void or steps["receipt"] == "skipped_not_issued":
-        steps["replacement"] = "none"
-    elif kept <= 0 or payment.status != "partially_refunded":
-        steps["replacement"] = "not_needed"
-    else:
-        replacement = ebarimt_svc.issue_replacement(receipt, kept)
-        steps["replacement"] = "issued" if replacement.id not in issued_ids else "reused"
+    steps = {"receipt": _void_step(receipt, void=void, kept=kept)}  # 1. tax first
+    steps["payment"] = _money_step(payment, data)                   # 2. money
+    replacement, steps["replacement"] = _replacement_step(          # 2b. kept half
+        payment, receipt, void=void, kept=kept, voided=steps["receipt"], issued_ids=issued_ids)
 
     # Nothing left to undo — say so rather than report a successful no-op.
     if steps["payment"] == "already_refunded" and steps["receipt"] in (
@@ -197,6 +161,47 @@ def refund(data: dict) -> dict:
         "enrollment": enrollment.to_dict(with_student=False) if enrollment is not None else None,
         "ledger": _ledger_dict(payment),
     }
+
+
+def _void_step(receipt, *, void: bool, kept: Decimal) -> str:
+    """Void the receipt at the PosAPI unless there is nothing (left) to void."""
+    if receipt is None:
+        return "none"
+    if not void:
+        return "kept"
+    if receipt.status == "returned":
+        return "already_returned"
+    if receipt.status == "failed":
+        # Never accepted by the PosAPI, so there is nothing to void.
+        return "skipped_not_issued"
+    if kept > 0 and Decimal(str(receipt.total_amount)) == kept:
+        # Already the replacement this same refund would issue — a retry, not a
+        # second refund. Voiding it would undo the correction.
+        return "already_corrected"
+    ebarimt_svc.return_receipt(receipt)
+    return "returned"
+
+
+def _money_step(payment: Payment, data: dict) -> str:
+    if payment.status == "refunded":
+        return "already_refunded"
+    pay_svc.refund(
+        payment,
+        pct_attended=_as_int(data.get("pct_attended")),
+        amount=data.get("amount"),
+        reason=data.get("reason"),
+    )
+    return payment.status
+
+
+def _replacement_step(payment, receipt, *, void, kept, voided, issued_ids):
+    """(replacement receipt or None, step label) for what the buyer kept."""
+    if receipt is None or not void or voided == "skipped_not_issued":
+        return None, "none"
+    if kept <= 0 or payment.status != "partially_refunded":
+        return None, "not_needed"
+    replacement = ebarimt_svc.issue_replacement(receipt, kept)
+    return replacement, ("issued" if replacement.id not in issued_ids else "reused")
 
 
 def _kept_after_refund(payment: Payment, data: dict) -> Decimal:

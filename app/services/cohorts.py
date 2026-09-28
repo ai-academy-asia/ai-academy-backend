@@ -49,14 +49,34 @@ def _apply(cohort, data):
 def _validate(cohort):
     if not cohort.name:
         raise ServiceError(400, "name_required")
-    if not cohort.course_id or db.session.get(Course, cohort.course_id) is None:
-        raise ServiceError(400, "invalid_course_id")
     if cohort.status not in COHORT_STATUSES:
         raise ServiceError(400, "invalid_status")
-    if cohort.teacher_id and db.session.get(Teacher, cohort.teacher_id) is None:
-        raise ServiceError(400, "invalid_teacher_id")
-    if cohort.classroom_id and db.session.get(Classroom, cohort.classroom_id) is None:
-        raise ServiceError(400, "invalid_classroom_id")
+    _validate_references(cohort)
+    _validate_schedule(cohort)
+
+
+# (column, model, required, error). Checked before anything is written, so a
+# dangling id answers 400 instead of surfacing as a foreign-key 500.
+_REFERENCES = (
+    ("course_id", Course, True, "invalid_course_id"),
+    ("teacher_id", Teacher, False, "invalid_teacher_id"),
+    ("classroom_id", Classroom, False, "invalid_classroom_id"),
+    ("parent_cohort_id", Cohort, False, "invalid_parent_cohort_id"),
+)
+
+
+def _validate_references(cohort):
+    # On update the cohort is already in the session with the new ids applied;
+    # an autoflush during these lookups would write the bad id before we can
+    # reject it.
+    with db.session.no_autoflush:
+        for column, model, required, error in _REFERENCES:
+            value = getattr(cohort, column)
+            if (required and not value) or (value and db.session.get(model, value) is None):
+                raise ServiceError(400, error)
+
+
+def _validate_schedule(cohort):
     if cohort.start_date and cohort.end_date and cohort.end_date < cohort.start_date:
         raise ServiceError(400, "end_before_start")
     if cohort.meeting_days is not None and (

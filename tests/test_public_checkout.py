@@ -206,7 +206,7 @@ def test_status_paid_settles_booking(client, gateways, checkout):
     booking = _booking(token)
     assert booking.status == "paid" and booking.paid_at is not None
     assert booking.invoice.status == "paid"
-    assert ClassroomRequest.query.get(booking.classroom_request_id).status == "paid"
+    assert ClassroomRequest.query.filter_by(id=booking.classroom_request_id).one().status == "paid"
     payment = Payment.query.one()
     assert payment.invoice_id == booking.invoice_id
     assert payment.amount == Decimal("800000.00")

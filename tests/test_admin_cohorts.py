@@ -187,12 +187,11 @@ def test_create_invalid_meeting_days_lists_valid(client, admin_headers, payload)
     assert body["valid"] == ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 
 
-@pytest.mark.xfail(strict=True, reason="parent_cohort_id is not validated: an unknown id "
-                   "hits the FK and surfaces as a 500 instead of a 400")
 def test_create_rejects_unknown_parent_cohort(client, admin_headers, payload):
     resp = client.post("/admin/cohorts", headers=admin_headers,
                        json=payload(parent_cohort_id=9999))
     assert resp.status_code == 400
+    assert resp.get_json()["error"] == "invalid_parent_cohort_id"
 
 
 # ---------------------------------------------------------------- double booking
@@ -320,9 +319,6 @@ def test_update_validation(client, admin_headers, make_cohort, db, fields, error
     assert cohort.status == "open" and cohort.name == name
 
 
-@pytest.mark.xfail(strict=True, reason="update_cohort mutates the loaded cohort before "
-                   "_validate; the existence lookup autoflushes the bad FK and raises "
-                   "IntegrityError (500) instead of the 400")
 @pytest.mark.parametrize("field,error", [
     ("course_id", "invalid_course_id"),
     ("teacher_id", "invalid_teacher_id"),

@@ -160,7 +160,7 @@ def test_create_request_stores_normalised_lead(client, published):
         "phone_num2": " 88 ", "student_plan": "x" * 5000,
     })
     assert resp.status_code == 201
-    row = ClassroomRequest.query.get(resp.get_json()["_id"])
+    row = ClassroomRequest.query.filter_by(id=resp.get_json()["_id"]).one()
     assert resp.get_json() == {"_id": row.id}
     assert row.course_id == course.id
     assert row.email == "bat@example.mn"
@@ -173,7 +173,7 @@ def test_create_request_stores_normalised_lead(client, published):
 def test_create_request_without_course_is_allowed(client):
     resp = client.post("/classroom-requests", json=LEAD)
     assert resp.status_code == 201
-    assert ClassroomRequest.query.get(resp.get_json()["_id"]).course_id is None
+    assert ClassroomRequest.query.filter_by(id=resp.get_json()["_id"]).one().course_id is None
 
 
 @pytest.mark.parametrize("payload, code", [
@@ -317,7 +317,7 @@ def test_booking_holds_seat_and_mints_unique_token(client, published, make_cohor
     assert booking.amount == Decimal("900000.00")  # client amount ignored
     assert booking.promotion_code is None
     assert timedelta(minutes=29) < booking.expires_at - datetime.utcnow() <= timedelta(minutes=30)
-    assert ClassroomRequest.query.get(request_id).status == "booked"
+    assert ClassroomRequest.query.filter_by(id=request_id).one().status == "booked"
 
     again = _book(client, course.id, lead(), cohort.id, number_of_seat=2)
     assert again.status_code == 201
@@ -453,4 +453,4 @@ def test_booking_409s_when_course_not_priced_in_mnt(client, published, make_coho
     assert resp.status_code == 409
     assert resp.get_json() == {"error": "price_not_in_mnt", "currency": "USD"}
     assert SeatBooking.query.count() == 0
-    assert ClassroomRequest.query.get(request_id).status == "new"
+    assert ClassroomRequest.query.filter_by(id=request_id).one().status == "new"

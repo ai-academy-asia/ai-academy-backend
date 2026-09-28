@@ -14,4 +14,5 @@ known-first-party = ["app"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
-filterwarnings = ["ignore::DeprecationWarning"]
+# The codebase stores naive UTC on purpose (app/timeutil.py); 3.12 flags utcnow().
+filterwarnings = ["ignore:datetime.datetime.utcnow:DeprecationWarning"]
