@@ -1,3 +1,4 @@
 # Dev-only tooling (not installed in the prod image).
 -r requirements.txt
 ruff==0.15.22
+pytest==8.3.3

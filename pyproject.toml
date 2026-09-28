@@ -10,3 +10,8 @@ select = ["E", "W", "F", "I", "B", "SIM", "UP", "C4", "RET", "PIE"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+filterwarnings = ["ignore::DeprecationWarning"]
