@@ -13,7 +13,8 @@ import segno
 from flask import Blueprint, Response, current_app, g, jsonify, request
 
 from app.auth import actor_required, require_permission
-from app.models import Enrollment
+from app.extensions import db
+from app.models import Enrollment, PaymentInstallment
 from app.payments import SUPPORTED_PROVIDERS
 from app.services import ebarimt as ebarimt_svc
 from app.services import payments as pay_svc
@@ -59,12 +60,19 @@ def create_my_invoice():
     enrollment_id = data.get("enrollment_id")
     installment_id = data.get("installment_id")
 
-    # A student may only pay for their own enrollment.
+    # A student may only pay for their own enrollment — named directly, or
+    # implied by the installment (which carries its enrollment with it).
     if enrollment_id is not None:
         enr = Enrollment.query.filter_by(
             id=enrollment_id, student_id=g.current_user.actor_id
         ).first()
         if enr is None:
+            raise ServiceError(403, "not_your_enrollment")
+    if installment_id is not None:
+        # An unknown installment falls through to the service's 404.
+        inst = PaymentInstallment.query.filter_by(id=installment_id).first()
+        enr = db.session.get(Enrollment, inst.enrollment_id) if inst is not None else None
+        if inst is not None and (enr is None or enr.student_id != g.current_user.actor_id):
             raise ServiceError(403, "not_your_enrollment")
 
     invoice = pay_svc.create_invoice(
@@ -319,7 +327,6 @@ def get_ledger(enrollment_id):
 @require_permission("ledger:read")
 def recompute_ledger(enrollment_id):
     ledger = pay_svc.recompute_ledger(enrollment_id)
-    from app.extensions import db
     db.session.commit()
     return jsonify(ledger.to_dict())
 

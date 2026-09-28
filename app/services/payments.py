@@ -17,6 +17,8 @@ from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from uuid import uuid4
 
+from flask import current_app
+
 from app.extensions import db
 from app.models import (
     Course,
@@ -149,6 +151,9 @@ def _resolve_links(enrollment_id, student_id, installment_id):
         inst = db.session.get(PaymentInstallment, installment_id)
         if inst is None:
             raise ServiceError(404, "installment_not_found")
+        # Settling marks this installment paid, so it must be the enrollment's own.
+        if enrollment_id and int(enrollment_id) != inst.enrollment_id:
+            raise ServiceError(400, "installment_not_in_enrollment")
         enrollment_id = enrollment_id or inst.enrollment_id
         student_id = student_id or inst.student_id
     if enrollment_id:
@@ -205,15 +210,22 @@ def settle(invoice: Invoice, status: PaymentStatus) -> Payment | None:
         provider=invoice.provider, provider_payment_id=txn_id
     ).first()
     if existing is not None:
+        if _is_short(invoice, existing.amount):
+            return None
         _mark_invoice_paid(invoice, existing.paid_at)  # ensure invoice reflects it
         db.session.commit()
         return existing
+
+    received = status.amount if status.amount is not None else invoice.amount
+    if _is_short(invoice, received):
+        _record_short_payment(invoice, status, txn_id, received)
+        return None
 
     payment = Payment(
         invoice_id=invoice.id,
         provider=invoice.provider,
         provider_payment_id=txn_id,
-        amount=status.amount if status.amount is not None else invoice.amount,
+        amount=received,
         currency=invoice.currency,
         status="paid",
         method=status.method,
@@ -230,6 +242,40 @@ def settle(invoice: Invoice, status: PaymentStatus) -> Payment | None:
     db.session.commit()
     _issue_ebarimt(payment)
     return payment
+
+
+def _is_short(invoice: Invoice, received) -> bool:
+    return received is not None and Decimal(str(received)) < Decimal(str(invoice.amount))
+
+
+def _record_short_payment(invoice: Invoice, status: PaymentStatus, txn_id, received):
+    """Book money that arrived short of the invoice, without settling anything.
+
+    The money is real, so it is recorded and counts toward the ledger — but the
+    invoice stays open and its installment unpaid: marking them paid would clear
+    a debt the buyer has not covered. No receipt is issued either; the seat and
+    the tax receipt wait for finance, who find these by the log line below.
+    """
+    payment = Payment(
+        invoice_id=invoice.id,
+        provider=invoice.provider,
+        provider_payment_id=txn_id,
+        amount=received,
+        currency=invoice.currency,
+        status="paid",
+        method=status.method,
+        paid_at=status.paid_at or datetime.utcnow(),
+        raw=status.raw,
+    )
+    db.session.add(payment)
+    db.session.flush()
+    if invoice.enrollment_id:
+        recompute_ledger(invoice.enrollment_id)
+    db.session.commit()
+    current_app.logger.warning(
+        "underpayment on invoice %s (%s): received %s of %s — left open for finance",
+        invoice.id, invoice.sender_invoice_no, received, invoice.amount,
+    )
 
 
 def _issue_ebarimt(payment: Payment):
@@ -391,7 +437,8 @@ def get_ledger(enrollment_id) -> StudentLedger:
 
 # ------------------------------------------------------------------- refunds
 def compute_refund_amount(payment: Payment, *, pct_attended=None, amount=None) -> Decimal:
-    """How much of ``payment`` goes back, without touching anything.
+    """How much of ``payment`` has gone back once this refund lands — the running
+    total, not the increment — without touching anything.
 
     Split out of :func:`refund` because the eBarimt side has to know the figure
     *before* the money moves: whether the tax receipt is voided outright or
@@ -400,14 +447,24 @@ def compute_refund_amount(payment: Payment, *, pct_attended=None, amount=None) -
     :mod:`app.services.refunds`).
     """
     original = payment.amount or Decimal(0)
+    already = payment.refunded_amount or Decimal(0)
+    # The figure is the running total returned, not an increment: re-sending the
+    # same request (a double-click, a retry after a timeout) must not pay out twice.
     if amount is not None:
-        refund_amount = _to_amount(amount)
-        if refund_amount > original:
+        total = _to_amount(amount)
+        if total > original:
             raise ServiceError(400, "refund_exceeds_payment")
-        return refund_amount
-    if pct_attended is not None:
-        return (original * Decimal("0.5")) if int(pct_attended) < 20 else Decimal(0)
-    raise ServiceError(400, "refund_basis_required")
+    elif pct_attended is not None:
+        total = (original * Decimal("0.5")) if int(pct_attended) < 20 else Decimal(0)
+        if total <= 0 and already <= 0:
+            raise ServiceError(409, "nothing_to_refund", pct_attended=int(pct_attended))
+    else:
+        raise ServiceError(400, "refund_basis_required")
+    # Money already handed back cannot be taken back by a lower figure.
+    if total < already:
+        raise ServiceError(400, "refund_below_already_refunded",
+                           already_refunded=float(already))
+    return total
 
 
 def refund(
@@ -415,8 +472,9 @@ def refund(
 ) -> Payment:
     """Apply a refund. Pilot rule: attendance <20% → 50% back, ≥20% → nothing.
 
-    ``amount`` overrides the computed refund (finance discretion). Recomputes the
-    ledger afterward.
+    ``amount`` overrides the computed refund (finance discretion) and is the
+    total returned, including any earlier partial refund. Recomputes the ledger
+    afterward.
 
     Money only — the tax receipt and the seat are the caller's business. Go
     through :mod:`app.services.refunds` unless you mean to touch just this row.
@@ -424,13 +482,13 @@ def refund(
     if payment.status == "refunded":
         raise ServiceError(409, "already_refunded")
     original = payment.amount or Decimal(0)
-    refund_amount = compute_refund_amount(payment, pct_attended=pct_attended, amount=amount)
+    total = compute_refund_amount(payment, pct_attended=pct_attended, amount=amount)
 
-    payment.refunded_amount = refund_amount
+    payment.refunded_amount = total
     payment.refund_pct_attended = pct_attended
     payment.refund_reason = (str(reason).strip()[:255] or None) if reason else None
     payment.refunded_at = datetime.utcnow()
-    payment.status = "refunded" if refund_amount >= original else "partially_refunded"
+    payment.status = "refunded" if total >= original else "partially_refunded"
     db.session.flush()
     if payment.invoice and payment.invoice.enrollment_id:
         recompute_ledger(payment.invoice.enrollment_id)

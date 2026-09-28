@@ -16,15 +16,17 @@ def enroll(cohort, student_id, *, require_open, created_via, admin_id=None) -> E
         raise ServiceError(409, "cohort_not_open")
 
     existing = Enrollment.query.filter_by(cohort_id=cohort.id, student_id=student_id).first()
+    if existing is not None and existing.status == "active":
+        raise ServiceError(409, "already_enrolled")
+    # A cancelled student gave their seat up; coming back takes a seat like
+    # anyone else, so the capacity check applies to re-activation too.
+    if cohort.seats_available == 0:
+        raise ServiceError(409, "cohort_full")
     if existing is not None:
-        if existing.status == "active":
-            raise ServiceError(409, "already_enrolled")
         existing.status = "active"  # re-activate a cancelled enrollment
         db.session.commit()
         return existing
 
-    if cohort.seats_available == 0:
-        raise ServiceError(409, "cohort_full")
     enrollment = Enrollment(
         cohort_id=cohort.id, student_id=student_id, status="active",
         course_id=cohort.course_id, created_via=created_via, created_by_admin_id=admin_id,

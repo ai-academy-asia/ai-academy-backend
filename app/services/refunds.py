@@ -110,18 +110,21 @@ def lookup(data: dict) -> dict:
             "seat": booking.number_of_seat if booking is not None else None,
             "booking_status": booking.status if booking is not None else None,
         } if booking is not None else None,
-        # What a full refund would hand back — the amount already returned is
-        # not owed twice.
+        # What is still left to hand back — the amount already returned is not
+        # owed twice. Display only: a refund's ``amount`` is the running total,
+        # so a full refund sends ``full_refund_amount``, not this.
         "refundable": float(max(paid - refunded, Decimal(0))),
         "refunded": float(refunded),
+        "full_refund_amount": float(paid),
     }
 
 
 def refund(data: dict) -> dict:
     """Refund one payment: void its receipt, return the money, free the seat.
 
-    ``amount`` (explicit figure) or ``pct_attended`` (pilot rule: <20% attended →
-    half back) decides how much. ``void_receipt`` defaults to true — a refund
+    ``amount`` (the total returned, earlier partial refunds included — so a
+    retried request cannot pay out twice) or ``pct_attended`` (pilot rule: <20%
+    attended → half back) decides how much. ``void_receipt`` defaults to true — a refund
     that leaves the tax receipt standing has to be asked for.
     """
     payment, receipt = resolve(data)

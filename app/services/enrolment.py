@@ -879,7 +879,9 @@ def _mark_paid(booking: SeatBooking) -> None:
     would put two paid bookings on one seat. The money is already in, so this
     needs a human — hence a distinct code finance can search for.
     """
-    if booking.is_expired:
+    # "released" is the same lapsed hold after book_seat or the sweeper retired
+    # it — by then its seat may well have gone to someone else.
+    if booking.is_expired or booking.status == "released":
         _, _, paid, held = _seat_counts(booking.cohort)
         if booking.number_of_seat in set(paid) | set(held):
             raise ServiceError(409, "seat_taken_after_hold_expired",
@@ -888,6 +890,10 @@ def _mark_paid(booking: SeatBooking) -> None:
     booking.paid_at = datetime.utcnow()
     if booking.request is not None:
         booking.request.status = "paid"
+    if booking.promotion_code:
+        # Counted at sale, not at hold: an abandoned checkout must not burn a use.
+        Promotion.query.filter_by(code=booking.promotion_code).update(
+            {Promotion.used_count: Promotion.used_count + 1}, synchronize_session=False)
     db.session.commit()
 
 
