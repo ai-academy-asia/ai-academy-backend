@@ -218,12 +218,17 @@ def test_list_invoices_with_filters(client, gateways, finance, enroll):
     assert "qr_text" not in listed
 
 
-@pytest.mark.xfail(strict=True, raises=Exception,
-                   reason="list_invoices/list_payments call int(limit) unguarded: "
-                   "?limit=abc is a 500, not a 400")
 def test_list_invoices_rejects_non_numeric_limit(client, finance):
     resp = client.get("/admin/invoices?limit=abc", headers=finance)
     assert resp.status_code == 400
+    assert resp.get_json()["error"] == "invalid_limit"
+
+
+@pytest.mark.parametrize("path", ["/admin/payments", "/admin/ebarimt"])
+def test_other_listings_reject_non_numeric_limit(client, finance, path):
+    resp = client.get(f"{path}?limit=abc", headers=finance)
+    assert resp.status_code == 400
+    assert resp.get_json()["error"] == "invalid_limit"
 
 
 # ======================================================= GET /admin/invoices/<id>

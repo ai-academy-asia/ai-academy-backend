@@ -612,8 +612,13 @@ def apply_coupon(request_id, body: dict) -> Promotion:
     if db.session.get(ClassroomRequest, request_id) is None:
         raise ServiceError(404, "classroom_request_not_found")
     code = (body.get("promotion_code") or "").strip()
-    promotion = _valid_promotion(code, body.get("classroom_course_id")) if code else None
-    if promotion is None:
+    promotion = Promotion.query.filter_by(code=code).first() if code else None
+    # The site sends its public (often legacy) course id; a promotion is scoped to
+    # ours. One public id can stand for several of our courses, so any will do.
+    public_id = body.get("classroom_course_id")
+    course_ids = ([c.id for c in courses_for_public_id(public_id)]
+                  if public_id not in (None, "") else [])
+    if promotion is None or not any(promotion.is_valid_now(cid) for cid in course_ids or [None]):
         raise ServiceError(404, "promotion_not_found")
     return promotion
 
@@ -647,17 +652,8 @@ def qpay_invoice(token: str) -> dict:
     might still pay against.
     """
     booking = booking_for_token(token)
-    invoice = booking.invoice
-    if invoice is None or invoice.status not in ("pending", "paid"):
-        invoice = pay_svc.create_invoice(
-            _provider_for("qpay"),
-            amount=booking.amount,
-            callback_base=current_app.config.get("PUBLIC_BASE_URL", ""),
-            description=_describe(booking),
-            customer=_customer(booking),
-        )
-        booking.invoice_id = invoice.id
-        db.session.commit()
+    invoice = _invoice_for(booking, _provider_for("qpay"),
+                           description=_describe(booking), customer=_customer(booking))
     return {
         "invoice_id": invoice.provider_invoice_id or str(invoice.id),
         "qr_image": invoice.qr_image,
@@ -819,17 +815,9 @@ def storepay_invoice(body: dict) -> dict:
     booking = booking_for_token(
         body.get("payment_token") or body.get("pt") or ""
     )
-    invoice = booking.invoice
-    if invoice is None or invoice.status not in ("pending", "paid"):
-        invoice = pay_svc.create_invoice(
-            _provider_for("storepay"),
-            amount=booking.amount,
-            callback_base=current_app.config.get("PUBLIC_BASE_URL", ""),
-            description=body.get("description") or _describe(booking),
-            customer={**_customer(booking), "phone": body.get("phone")},
-        )
-        booking.invoice_id = invoice.id
-        db.session.commit()
+    invoice = _invoice_for(booking, _provider_for("storepay"),
+                           description=body.get("description") or _describe(booking),
+                           customer={**_customer(booking), "phone": body.get("phone")})
     return {
         # The token, not the invoice id: this value goes into a URL the browser
         # then polls, and a sequential id there is an enumeration handle.
@@ -856,6 +844,42 @@ def storepay_status(token: str) -> dict:
 
 
 # ------------------------------------------------------------------- helpers
+def _invoice_for(booking: SeatBooking, provider: str, *, description, customer):
+    """The booking's invoice at ``provider`` — reused, or raised fresh.
+
+    Reused while pending at the same gateway: the front-end re-fetches on
+    remount, and a fresh invoice per render would leave orphan QRs the buyer
+    might still pay against. A paid invoice is never replaced, whichever
+    gateway took the money.
+
+    Switching gateway (QPay QR opened, then StorePay chosen) checks the old
+    invoice first — the buyer may have paid it in the meantime — and only then
+    retires it. A booking points at one invoice, so a payment that still lands
+    on the retired one is flagged by ``payments.settle`` for finance.
+    """
+    invoice = booking.invoice
+    if invoice is not None and invoice.status == "pending" and invoice.provider != provider:
+        invoice = pay_svc.check_status(invoice)
+        if invoice.status == "pending":
+            invoice.status = "cancelled"
+            db.session.commit()
+    if invoice is not None and (
+        invoice.status == "paid" or (invoice.status == "pending" and invoice.provider == provider)
+    ):
+        return invoice
+
+    invoice = pay_svc.create_invoice(
+        provider,
+        amount=booking.amount,
+        callback_base=current_app.config.get("PUBLIC_BASE_URL", ""),
+        description=description,
+        customer=customer,
+    )
+    booking.invoice_id = invoice.id
+    db.session.commit()
+    return invoice
+
+
 def _describe(booking: SeatBooking) -> str:
     cohort = booking.cohort
     return cohort.name if cohort is not None else f"AIAA booking {booking.id}"

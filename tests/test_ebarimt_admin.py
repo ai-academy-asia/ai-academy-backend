@@ -597,9 +597,6 @@ def test_return_unknown_receipt_is_404(client, finance):
     assert client.post("/admin/ebarimt/999/return", headers=finance).status_code == 404
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "get_payment passes the raw value to db.session.get, so a non-numeric id hits "
-    "Postgres and 500s with DataError (app/services/payments.py:467)"))
 def test_issue_with_a_non_numeric_payment_id_is_404(client, finance):
     resp = client.post("/admin/ebarimt/issue", json={"payment_id": "abc"}, headers=finance)
     assert resp.status_code == 404

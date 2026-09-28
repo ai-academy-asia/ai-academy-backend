@@ -170,12 +170,11 @@ def test_create_invoice_validates_amount(client, db, gateways, student, amount, 
     assert _rows(db, Invoice) == []
 
 
-@pytest.mark.xfail(strict=True, raises=Exception,
-                   reason="_to_amount lets Decimal('NaN') reach a signalling comparison, "
-                   "which raises InvalidOperation (500) instead of 400 invalid_amount")
-def test_create_invoice_rejects_nan_amount(client, gateways, student):
-    resp = _create(client, student[1], amount="NaN")
+@pytest.mark.parametrize("amount", ["NaN", "Infinity", "-Infinity"])
+def test_create_invoice_rejects_non_finite_amount(client, gateways, student, amount):
+    resp = _create(client, student[1], amount=amount)
     assert resp.status_code == 400
+    assert resp.get_json()["error"] == "invalid_amount"
 
 
 def test_create_invoice_rounds_amount_to_cents(client, gateways, student):

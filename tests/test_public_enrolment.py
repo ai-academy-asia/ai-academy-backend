@@ -243,8 +243,6 @@ def test_coupon_404s_invalid_codes(client, lead, make_promotion, published, fiel
     assert resp.get_json()["error"] == "promotion_not_found"
 
 
-@pytest.mark.xfail(strict=True, reason="apply_coupon compares the public (legacy) course id "
-                   "against Promotion.course_id (our id) without resolving it")
 def test_coupon_scoped_to_course_accepts_its_legacy_id(client, lead, make_promotion, published):
     course = published(legacy_course_id=51)
     assert course.id != 51

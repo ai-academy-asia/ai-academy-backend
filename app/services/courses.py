@@ -169,9 +169,16 @@ def upload_template(course, kind, file, *, content_length, max_bytes) -> str:
     except S3StorageError:
         raise ServiceError(502, "storage_error") from None
 
+    previous = getattr(course, key_col)
     setattr(course, key_col, key)
     setattr(course, name_col, file.filename)
     db.session.commit()
+    # A new extension means a new key; the old object would sit in the bucket
+    # unreferenced. Best-effort, after the commit: a failed delete leaves an
+    # orphan, never a course pointing at a missing file.
+    if previous and previous != key:
+        with contextlib.suppress(S3StorageError):
+            delete_object(previous)
     return file.filename
 
 

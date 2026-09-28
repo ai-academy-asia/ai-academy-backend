@@ -36,6 +36,7 @@ from app.timeutil import from_local, local
 from app.utils import dig
 
 from .errors import ServiceError, from_integration_error
+from .params import get_by_id, parse_limit
 
 
 # ------------------------------------------------------------------- config
@@ -616,7 +617,7 @@ def issue_replacement(original: EBarimtReceipt, amount, *, description=None) -> 
 
 # ------------------------------------------------------------------- reads
 def get_receipt(receipt_id) -> EBarimtReceipt:
-    receipt = db.session.get(EBarimtReceipt, receipt_id)
+    receipt = get_by_id(EBarimtReceipt, receipt_id)
     if receipt is None:
         raise ServiceError(404, "receipt_not_found")
     return receipt
@@ -630,7 +631,7 @@ def list_receipts(*, status=None, temp=None, payment_id=None, limit=50):
         q = q.filter_by(is_temp_mode=_as_bool(temp))
     if payment_id and str(payment_id).isdigit():
         q = q.filter_by(payment_id=int(payment_id))
-    return q.order_by(EBarimtReceipt.id.desc()).limit(min(int(limit), 200)).all()
+    return q.order_by(EBarimtReceipt.id.desc()).limit(parse_limit(limit)).all()
 
 
 def status_summary() -> dict:

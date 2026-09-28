@@ -288,13 +288,20 @@ def test_upload_replaces_same_kind(client, editor, make_course, db, s3):
     assert _fresh(db, cid).cert_template_name == "v2.pdf"
 
 
-@pytest.mark.xfail(strict=True, reason="re-uploading a template with a different extension "
-                   "writes a new key and orphans the old S3 object")
 def test_upload_with_new_extension_drops_old_object(client, editor, make_course, s3):
     cid = make_course().id
     _upload(client, editor, cid, "contract", "c.pdf")
     _upload(client, editor, cid, "contract", "c.docx")
     assert list(s3.objects) == [f"courses/{cid}/contract_template.docx"]
+
+
+def test_reupload_survives_failing_to_delete_the_old_object(client, editor, make_course, s3):
+    cid = make_course().id
+    _upload(client, editor, cid, "contract", "c.pdf")
+    s3.fail.add("delete")
+    resp = _upload(client, editor, cid, "contract", "c.docx")
+    assert resp.status_code == 200
+    assert f"courses/{cid}/contract_template.docx" in s3.objects
 
 
 def test_upload_bad_kind_is_400(client, editor, make_course, s3):

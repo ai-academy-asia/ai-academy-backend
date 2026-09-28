@@ -39,6 +39,7 @@ from app.payments import (
 )
 
 from .errors import ServiceError, from_integration_error
+from .params import get_by_id, parse_limit
 
 
 # --------------------------------------------------------------------- helpers
@@ -47,6 +48,8 @@ def _to_amount(value) -> Decimal:
         amount = Decimal(str(value))
     except (InvalidOperation, TypeError):
         raise ServiceError(400, "invalid_amount") from None
+    if not amount.is_finite():  # NaN / Infinity parse fine and then break arithmetic
+        raise ServiceError(400, "invalid_amount")
     if amount <= 0:
         raise ServiceError(400, "amount_must_be_positive")
     return amount.quantize(Decimal("0.01"))
@@ -59,7 +62,7 @@ def _gen_reference(provider: str) -> str:
 
 
 def get_invoice(invoice_id) -> Invoice:
-    invoice = db.session.get(Invoice, invoice_id)
+    invoice = get_by_id(Invoice, invoice_id)
     if invoice is None:
         raise ServiceError(404, "invoice_not_found")
     return invoice
@@ -221,6 +224,13 @@ def settle(invoice: Invoice, status: PaymentStatus) -> Payment | None:
         _record_short_payment(invoice, status, txn_id, received)
         return None
 
+    if invoice.status == "cancelled":
+        # Retired when the buyer switched gateway, and paid anyway. The money is
+        # real and is recorded, but the booking now points at the other invoice.
+        current_app.logger.warning(
+            "cancelled invoice %s (%s) was paid — link it to its booking by hand",
+            invoice.id, invoice.sender_invoice_no,
+        )
     payment = Payment(
         invoice_id=invoice.id,
         provider=invoice.provider,
@@ -507,7 +517,7 @@ def list_invoices(*, provider=None, status=None, enrollment_id=None, student_id=
         q = q.filter_by(enrollment_id=int(enrollment_id))
     if student_id and str(student_id).isdigit():
         q = q.filter_by(student_id=int(student_id))
-    return q.order_by(Invoice.id.desc()).limit(min(int(limit), 200)).all()
+    return q.order_by(Invoice.id.desc()).limit(parse_limit(limit)).all()
 
 
 def list_payments(*, provider=None, status=None, invoice_id=None, limit=50):
@@ -518,11 +528,11 @@ def list_payments(*, provider=None, status=None, invoice_id=None, limit=50):
         q = q.filter_by(status=status)
     if invoice_id and str(invoice_id).isdigit():
         q = q.filter_by(invoice_id=int(invoice_id))
-    return q.order_by(Payment.id.desc()).limit(min(int(limit), 200)).all()
+    return q.order_by(Payment.id.desc()).limit(parse_limit(limit)).all()
 
 
 def get_payment(payment_id) -> Payment:
-    payment = db.session.get(Payment, payment_id)
+    payment = get_by_id(Payment, payment_id)
     if payment is None:
         raise ServiceError(404, "payment_not_found")
     return payment

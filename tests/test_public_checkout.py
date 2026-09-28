@@ -474,14 +474,30 @@ def test_storepay_invoice_404s_without_valid_token(client, gateways, checkout, p
     assert gateways["storepay"].created == []
 
 
-@pytest.mark.xfail(strict=True, reason="storepay_invoice reuses any pending invoice, so a "
-                   "buyer who opened the QPay QR first gets the QPay invoice back as StorePay")
 def test_storepay_after_qpay_raises_a_storepay_invoice(client, gateways, checkout):
     token = checkout()
     client.get(f"/payments/qpay/invoice?pt={token}")
     client.post("/payments/storepay/invoice", json={"payment_token": token})
     assert len(gateways["storepay"].created) == 1
     assert _booking(token).invoice.provider == "storepay"
+
+
+def test_switching_gateway_retires_the_unpaid_qpay_invoice(client, gateways, checkout):
+    token = checkout()
+    client.get(f"/payments/qpay/invoice?pt={token}")
+    qpay_invoice = _booking(token).invoice
+    client.post("/payments/storepay/invoice", json={"payment_token": token})
+    assert Invoice.query.filter_by(id=qpay_invoice.id).one().status == "cancelled"
+
+
+def test_switching_gateway_keeps_an_invoice_paid_in_the_meantime(client, gateways, checkout):
+    token = checkout()
+    client.get(f"/payments/qpay/invoice?pt={token}")
+    gateways["qpay"].paid = True
+    client.post("/payments/storepay/invoice", json={"payment_token": token})
+    assert gateways["storepay"].created == []
+    assert _booking(token).invoice.provider == "qpay"
+    assert _booking(token).invoice.status == "paid"
 
 
 def test_storepay_invoice_in_sandbox(client, app, checkout, monkeypatch):

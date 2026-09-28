@@ -20,6 +20,7 @@ from app.services import ebarimt as ebarimt_svc
 from app.services import payments as pay_svc
 from app.services import refunds as refund_svc
 from app.services.errors import ServiceError
+from app.services.params import parse_limit
 
 from ._shared import body
 
@@ -308,7 +309,8 @@ def reissue_receipt(receipt_id):
 @bp.post("/admin/ebarimt/reissue-all")
 @require_permission("ebarimt:manage")
 def reissue_all_receipts():
-    return jsonify(ebarimt_svc.reissue_all_temp(limit=int(body().get("limit", 200))))
+    limit = parse_limit(body().get("limit"), default=200, maximum=1000)
+    return jsonify(ebarimt_svc.reissue_all_temp(limit=limit))
 
 
 @bp.post("/admin/ebarimt/<int:receipt_id>/return")
