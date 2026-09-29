@@ -85,10 +85,11 @@ is reported with its output — never skip, xfail or loosen a test to get green.
 **Docs & Postman** — a new or changed route must appear in:
 - `docs/mobile_api_v1.md` if the mobile app calls it;
 - `aiaa-api.postman_collection.json` in the folder of its caller (Auth, Public, Account,
-  Student, Teacher, Admin/<permission>). Check coverage:
+  Student, Teacher, Admin/<permission>). `tests/test_postman_collection.py` enforces this in
+  CI; to see the gaps directly:
   ```bash
   DATABASE_URL=postgresql+psycopg2://x@localhost/aiaa_test \
-    .venv/bin/python .claude/skills/quality/postman_coverage.py
+    .venv/bin/python scripts/check_postman.py
   ```
 
 `fix` mode: fix each violation in the changed code. Report-only: list them.
