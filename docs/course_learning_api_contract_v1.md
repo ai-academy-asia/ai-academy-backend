@@ -339,7 +339,8 @@ Errors: `404 assignment_not_found`, `403 not_enrolled`, `409 past_due`, `400` co
  "questions": [{"question_id": 101, "order": 1, "correct": false}]}
 ```
 
-- Unanswered questions count as wrong. Also readable later at
+- Unanswered questions count as wrong. `percent` is weighted by each question's `point`
+  (default 1); `correct`/`total` count questions. Also readable later at
   `GET /me/quiz-attempts/{attempt_id}`. The result list needs only correctness per question —
   matches the UI's generic "Асуулт" rows.
 - **Server-graded:** `quizScore()` and `QuizQuestion.correctOptionIndex` go away.

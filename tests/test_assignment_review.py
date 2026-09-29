@@ -103,6 +103,15 @@ def test_review_without_max_score_accepts_any_non_negative(client, hw, make_assi
     assert resp.status_code == 200 and resp.get_json()["score"] == 250
 
 
+def test_ungraded_assignment_reviews_with_feedback_only(client, hw, make_assignment,
+                                                        make_submission):
+    sub = make_submission(make_assignment(hw.cohort, max_score=None), hw.sid)
+    resp = client.post(f"/teacher/submissions/{sub.id}/review", headers=hw.teacher_headers,
+                       json={"feedback": "Сайн байна"})
+    assert resp.status_code == 200
+    assert resp.get_json()["status"] == "reviewed" and resp.get_json()["score"] is None
+
+
 # ----------------------------------------------------------------- student file
 def test_submission_file_presigned(client, hw, s3, make_assignment, make_submission,
                                    make_file):

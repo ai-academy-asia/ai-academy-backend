@@ -114,7 +114,7 @@ def load_entries(path: Path | None = None) -> list[dict]:
 def seed_courses(*, path: Path | None = None, publish: bool = False) -> dict:
     """Upsert the static catalogue. Returns a summary for the caller to print.
 
-    ``publish`` marks the seeded courses ``published`` (and their cohorts
+    ``publish`` marks the seeded courses ``open`` (and their cohorts
     ``open``) so they show up on ``/programmes`` immediately. Off by default:
     seeding prod should not silently put a programme on sale.
     """
@@ -190,7 +190,7 @@ def _upsert_course(title, type_, fmt, age, head, publish, summary) -> Course:
     course.sort_order = head.get("num")
     course.legacy_course_id = head.get("backendCourseId")
     if publish:
-        course.status = "published"
+        course.status = "open"
     elif not course.status:
         course.status = "draft"
     db.session.flush()

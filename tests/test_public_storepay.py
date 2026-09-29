@@ -132,7 +132,7 @@ def test_paid_promotion_counts_toward_max_uses(client, gateways, make_course, ma
     db.session.add(Promotion(code="ONCE", name="Once", discount_type="percent",
                              discount_value=10, max_uses=1))
     db.session.commit()
-    cohort = make_cohort(course=make_course(status="published"))
+    cohort = make_cohort(course=make_course(status="open"))
     request_id = client.post("/classroom-requests", json=LEAD).get_json()["_id"]
     token = client.post(f"/classroom-courses/{cohort.course_id}/bookings", json={
         "classroom_request_id": request_id, "classroom_course_schedule_id": cohort.id,

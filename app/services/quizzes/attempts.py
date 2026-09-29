@@ -7,10 +7,17 @@ caller — another student's attempt id answers ``404 attempt_not_found``.
 from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db
-from app.models import Exam, ExamOption, ExamQuestion, StudentExam, StudentExamAnswer
+from app.models import (
+    CourseLesson,
+    Exam,
+    ExamOption,
+    ExamQuestion,
+    StudentExam,
+    StudentExamAnswer,
+)
 from app.timeutil import utcnow
 
-from ..access import enrollment_for_course
+from ..access import enrollment_for_course, ensure_module_open
 from ..errors import ServiceError
 from ..params import get_by_id, parse_id
 from . import payloads
@@ -54,6 +61,14 @@ def _answers(attempt) -> dict:
     return {a.question_id: a for a in rows}
 
 
+def _quiz_topic_id(quiz):
+    """The module a quiz sits in — its own, else its lesson's (course-wide quiz: None)."""
+    if quiz.topic_id is not None:
+        return quiz.topic_id
+    lesson = db.session.get(CourseLesson, quiz.lesson_id) if quiz.lesson_id else None
+    return lesson.topic_id if lesson is not None else None
+
+
 def _quiz_of(attempt) -> Exam:
     return db.session.get(Exam, attempt.exam_id)
 
@@ -62,7 +77,8 @@ def _quiz_of(attempt) -> Exam:
 def start_attempt(student_id, quiz_id) -> tuple:
     """(payload, created). Resumes the open attempt instead of opening a second one."""
     quiz = live_quiz(quiz_id)
-    enrollment_for_course(student_id, quiz.course_id)
+    enrollment = enrollment_for_course(student_id, quiz.course_id)
+    ensure_module_open(_quiz_topic_id(quiz), enrollment.cohort_id)
 
     attempt = open_attempt_for(student_id, quiz.id)
     if attempt is not None:
@@ -121,12 +137,18 @@ def answer_question(student_id, attempt_id, data) -> dict:
 
 # ---------------------------------------------------------------- finish / read
 def grade(attempt, quiz, answers) -> None:
-    """Score an attempt in place. Each question counts 1; unanswered = wrong."""
-    total = len(quiz.questions)
-    correct = sum(1 for q in quiz.questions if q.id in answers and answers[q.id].is_correct)
-    attempt.total = total
-    attempt.correct_count = correct
-    attempt.percent = (correct * 100) // total if total else 0
+    """Score an attempt in place; unanswered = wrong.
+
+    ``correct``/``total`` count questions (what the result screen lists), but the
+    percent — and so pass/fail — weighs each question by its ``point``, as the
+    author set it. With every point at the default 1 the two agree.
+    """
+    right = [q for q in quiz.questions if q.id in answers and answers[q.id].is_correct]
+    possible = sum(q.point or 1 for q in quiz.questions)
+    earned = sum(q.point or 1 for q in right)
+    attempt.total = len(quiz.questions)
+    attempt.correct_count = len(right)
+    attempt.percent = (earned * 100) // possible if possible else 0
     attempt.is_passed = attempt.percent >= quiz.pass_percent
     attempt.completed_at = utcnow()
 

@@ -149,6 +149,15 @@ FCM starts once `FCM_CREDENTIALS` is configured (`app/services/notifications/pus
 
 ## Additions beyond the contract
 
+- **Module lock everywhere:** `409 lesson_locked` also comes from material download, quiz
+  start and the assignment endpoints while the module's first class date is ahead.
+- **Quiz percent is weighted by question `point`** (staff-set, default 1); `correct` / `total`
+  still count questions. Pass/fail and certificates use the weighted percent.
+- **Ungraded assignments** (`max_score: null`) can be reviewed with feedback only; `score` is
+  then `null`.
+- **Course status** is `draft` / `open` / `closed` everywhere: `open` = on sale (site + app),
+  `closed` = still browsable in `/courses` but no longer sold, `draft` = hidden.
+
 - **Error codes** added where the contract said only "validate": `description_too_long`,
   `file_required`, `submission_conflict`, `invalid_question`, `invalid_field`,
   `field_too_long`, attendance/session time codes (`invalid_session_date`, …).

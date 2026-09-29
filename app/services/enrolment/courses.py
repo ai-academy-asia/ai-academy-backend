@@ -50,7 +50,7 @@ def _classroom_course(course: Course) -> dict:
 
 def list_classroom_courses() -> list[dict]:
     rows = (
-        Course.query.filter_by(status="published")
+        Course.query.filter_by(status="open")
         .order_by(Course.sort_order.is_(None), Course.sort_order, Course.id)
         .all()
     )
@@ -59,7 +59,7 @@ def list_classroom_courses() -> list[dict]:
 
 def get_classroom_course(course_id) -> dict:
     course = course_for_public_id(course_id)
-    if course is None or course.status != "published":
+    if course is None or course.status != "open":
         raise ServiceError(404, "course_not_found")
     return _classroom_course(course)
 

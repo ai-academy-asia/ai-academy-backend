@@ -25,7 +25,7 @@ _AUDIENCE_BY_LEVEL = {"junior": "junior", "adult": "adult", "corporate": "corpor
 _DELIVERY_BY_FORMAT = {"online": "online", "in_person": "inclass", "hybrid": "inclass"}
 
 # A run has to be on sale before it can take money.
-BOOKABLE_COHORT_STATUSES = ("open", "published")
+BOOKABLE_COHORT_STATUSES = ("open",)
 
 
 # ------------------------------------------------------------- id resolution

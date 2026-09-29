@@ -13,9 +13,16 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db
-from app.models import Assignment, AssignmentSubmission, Enrollment, StudentFile
+from app.models import (
+    Assignment,
+    AssignmentSubmission,
+    CourseLesson,
+    Enrollment,
+    StudentFile,
+)
 from app.timeutil import LOCAL_TZ, utcnow
 
+from ..access import ensure_module_open
 from ..errors import ServiceError
 from ..params import get_by_id
 from .serializers import assignment_dict, submission_dict
@@ -47,6 +54,8 @@ def visible_assignment(student_id, assignment_id) -> Assignment:
     if (assignment is None or not assignment.is_active
             or not _is_enrolled(student_id, assignment.cohort_id)):
         raise ServiceError(404, "assignment_not_found")
+    lesson = db.session.get(CourseLesson, assignment.lesson_id) if assignment.lesson_id else None
+    ensure_module_open(lesson.topic_id if lesson else None, assignment.cohort_id)
     return assignment
 
 

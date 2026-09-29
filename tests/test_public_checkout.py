@@ -177,7 +177,7 @@ def test_status_settles_lapsed_hold_whose_seat_is_still_free(client, gateways, c
 
 def test_status_refuses_lapsed_hold_whose_seat_was_resold(client, gateways, checkout,
                                                           make_course, make_cohort, db):
-    cohort = make_cohort(course=make_course(status="published"), capacity=1)
+    cohort = make_cohort(course=make_course(status="open"), capacity=1)
     first = checkout(cohort=cohort)
     client.get(f"/payments/qpay/invoice?pt={first}")
     _booking(first).expires_at = datetime.utcnow() - timedelta(minutes=5)

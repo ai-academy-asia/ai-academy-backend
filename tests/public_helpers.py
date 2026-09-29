@@ -12,7 +12,7 @@ COMPANY = {"tin": "12345678901", "name": "Жишээ ХХК", "found": True}
 @pytest.fixture
 def published(make_course):
     def _make(**fields):
-        return make_course(**{"status": "published", **fields})
+        return make_course(**{"status": "open", **fields})
 
     return _make
 
@@ -72,7 +72,7 @@ def checkout(client, make_course, make_cohort):
 
     def _make(price=1_000_000, capacity=10, cohort=None):
         if cohort is None:
-            course = make_course(status="published", price_amount=price)
+            course = make_course(status="open", price_amount=price)
             cohort = make_cohort(course=course, capacity=capacity, name="Corporate Leaders")
         request_id = client.post("/classroom-requests", json=CHECKOUT_LEAD).get_json()["_id"]
         resp = client.post(f"/classroom-courses/{cohort.course_id}/bookings", json={

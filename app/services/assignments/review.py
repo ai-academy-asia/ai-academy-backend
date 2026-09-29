@@ -76,6 +76,9 @@ def get_submission(account, submission_id) -> dict:
 
 
 def _score(value, max_score):
+    # An assignment without max_score is ungraded: feedback alone is a review.
+    if value is None and max_score is None:
+        return None
     if value is None or isinstance(value, bool):
         raise ServiceError(400, "invalid_score")
     try:

@@ -12,6 +12,7 @@ from ._common import (
     _DAY_LABELS,
     _DELIVERY_BY_FORMAT,
     _SESSION_BY_HOUR,
+    BOOKABLE_COHORT_STATUSES,
     _seat_counts,
     public_course_id,
     public_schedule_id,
@@ -153,7 +154,7 @@ def next_bookable_cohort(course_id) -> Cohort | None:
     cohorts = (
         Cohort.query.filter(
             Cohort.course_id == course_id,
-            Cohort.status.in_(("open", "published")),
+            Cohort.status.in_(BOOKABLE_COHORT_STATUSES),
         ).all()
     )
     if not cohorts:
@@ -172,7 +173,7 @@ def list_programmes(locale: str = "mn") -> list[dict]:
     other. The chosen run is exposed as ``schedule_id``.
     """
     courses = (
-        Course.query.filter_by(status="published")
+        Course.query.filter_by(status="open")
         .order_by(Course.sort_order.is_(None), Course.sort_order, Course.id)
         .all()
     )

@@ -122,11 +122,14 @@ def test_pass_threshold_is_inclusive(client, db, make_student, make_course, make
     assert run_attempt(client, db, headers, quiz.id, 4)["percent"] == 100
 
 
-def test_points_do_not_weight_the_percent(client, db, learner):
+def test_points_weight_the_percent_but_not_the_counts(client, db, learner):
     headers, quiz, _ = learner
-    quiz.questions[0].point = 10
+    quiz.questions[0].point = 10            # 10 + 1 + 1 = 12 points in all
     db.session.commit()
-    assert run_attempt(client, db, headers, quiz.id, 1)["percent"] == 33
+    result = run_attempt(client, db, headers, quiz.id, 1)
+    assert (result["correct"], result["total"]) == (1, 3)
+    assert result["percent"] == 83          # floor(10/12*100)
+    assert result["passed"] is True
 
 
 def test_unanswered_questions_count_as_wrong(client, db, learner):

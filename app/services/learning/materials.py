@@ -22,7 +22,7 @@ from app.storage import (
 )
 from app.timeutil import iso, utcnow
 
-from ..access import enrollment_for_course
+from ..access import enrollment_for_course, ensure_module_open
 from ..errors import ServiceError
 from ..params import get_by_id
 from . import fields
@@ -48,6 +48,7 @@ def download(student_id, material_id) -> dict:
     enrollment = enrollment_for_course(student_id, lesson.topic.course_id)
     if material.cohort_id is not None and material.cohort_id != enrollment.cohort_id:
         raise ServiceError(404, "material_not_found")
+    ensure_module_open(lesson.topic_id, enrollment.cohort_id)
     if material.type == "link":
         raise ServiceError(400, "material_is_link", url=material.url)
     if not material.file_key:

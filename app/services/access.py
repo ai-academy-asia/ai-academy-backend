@@ -55,6 +55,22 @@ def lesson_for_student(student_id, lesson_id) -> tuple:
     return lesson, enrollment_for_course(student_id, lesson.topic.course_id)
 
 
+def ensure_module_open(topic_id, cohort_id) -> None:
+    """``409 lesson_locked`` while the module's first class session is still ahead.
+
+    Every way into a module's content goes through this — the lesson screen, a
+    material download, a quiz, an assignment — or a sequential id would open
+    what the class date has not.
+    """
+    if topic_id is None:
+        return
+    from app.services.learning import path  # learning imports this module
+
+    session = path.first_sessions(cohort_id, [topic_id]).get(topic_id)
+    if path.is_locked(session):
+        raise ServiceError(409, "lesson_locked")
+
+
 def cohort_for_teacher(account, cohort_id) -> Cohort:
     """A cohort the caller may teach: their own, or any with ``cohort:manage``."""
     cohort = get_by_id(Cohort, cohort_id)

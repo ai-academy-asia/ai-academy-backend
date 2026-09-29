@@ -10,6 +10,7 @@ from app.timeutil import utcnow
 from ..access import (
     course_by_slug,
     enrollment_for_course,
+    ensure_module_open,
     lesson_for_student,
     topic_for_student,
 )
@@ -95,8 +96,7 @@ def module_lessons(student_id, module_id) -> dict:
 def _open_lesson(student_id, lesson_id):
     """(lesson, enrollment) for a lesson whose module has opened, else 409."""
     lesson, enrollment = lesson_for_student(student_id, lesson_id)
-    if path.is_locked(path.topic_session(lesson.topic, enrollment)):
-        raise ServiceError(409, "lesson_locked")
+    ensure_module_open(lesson.topic_id, enrollment.cohort_id)
     return lesson, enrollment
 
 
