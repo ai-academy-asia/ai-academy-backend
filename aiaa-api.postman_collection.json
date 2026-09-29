@@ -2,7 +2,7 @@
   "info": {
     "name": "AIAA Backend (prod)",
     "_postman_id": "aiaa-backend-prod-0002",
-    "description": "AI Academy Asia backend API — https://api.ai-academy.asia.\n\nOrganized to match the backend's actor routers:\n- Auth    : shared login/session (all actors)\n- Student : public browse + student self-service\n- Teacher : a teacher's own schedule\n- Admin   : back-office CRUD (Students, Teachers, Classrooms, Cohorts, Course content, Schedules)\n- Health\n\nUsage:\n1. Run Auth > Login first — it auto-saves access_token + refresh_token.\n2. Protected requests inherit `Bearer {{access_token}}`.\n3. Create requests save their id (course_id, student_id, teacher_id, classroom_id, cohort_id) for the follow-ups.\n4. When the access token expires (1h), run Auth > Refresh.\n\nRoles: super_admin (all) · content_marketing (course:edit) · sales_enrollment (student/teacher/cohort/enrollment/schedule:manage) · finance.",
+    "description": "AI Academy Asia backend API — https://api.ai-academy.asia.\n\nOrganized by who calls it (which token you need):\n- Auth    : login/session, password reset (all actors)\n- Public (no auth) : catalogue, the web enrolment/checkout funnel, certificate check\n- Account (student or teacher) : profile, notifications, push tokens\n- Student : my classes, payments & receipts, learning, assignments, quizzes, certificates, attendance\n- Teacher : my schedule, assignments & review, class sessions & QR attendance\n- Admin   : back-office, one subfolder per permission\n- Gateway callbacks · PosAPI local · Health\n\nMobile app endpoints: docs/mobile_api_v1.md (index) and docs/course_learning_api_contract_v1.md (JSON shapes).\n\nUsage:\n1. Run Auth > Login first — it auto-saves access_token + refresh_token.\n2. Protected requests inherit `Bearer {{access_token}}`.\n3. Create/list requests save the ids the follow-ups use (course_id, cohort_id, module_id, lesson_id, quiz_id, attempt_id, assignment_id, session_id, qr_token, …).\n   Mobile flows need a student (or teacher) token: log in as that user first.\n4. When the access token expires (1h), run Auth > Refresh.\n\nRoles: super_admin (all) · content_marketing (course:edit) · sales_enrollment (student/teacher/cohort/enrollment/schedule:manage) · finance.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -115,6 +115,66 @@
     {
       "key": "sp_request_id",
       "value": ""
+    },
+    {
+      "key": "module_id",
+      "value": ""
+    },
+    {
+      "key": "lesson_id",
+      "value": ""
+    },
+    {
+      "key": "material_id",
+      "value": ""
+    },
+    {
+      "key": "assignment_id",
+      "value": ""
+    },
+    {
+      "key": "submission_id",
+      "value": ""
+    },
+    {
+      "key": "file_id",
+      "value": ""
+    },
+    {
+      "key": "quiz_id",
+      "value": ""
+    },
+    {
+      "key": "attempt_id",
+      "value": ""
+    },
+    {
+      "key": "question_id",
+      "value": ""
+    },
+    {
+      "key": "option_id",
+      "value": ""
+    },
+    {
+      "key": "session_id",
+      "value": ""
+    },
+    {
+      "key": "notification_id",
+      "value": ""
+    },
+    {
+      "key": "cert_id",
+      "value": ""
+    },
+    {
+      "key": "cert_number",
+      "value": ""
+    },
+    {
+      "key": "qr_token",
+      "value": ""
     }
   ],
   "item": [
@@ -133,7 +193,8 @@
                   "var j = pm.response.json();",
                   "if (j.access_token) pm.collectionVariables.set('access_token', j.access_token);",
                   "if (j.refresh_token) pm.collectionVariables.set('refresh_token', j.refresh_token);",
-                  "console.log('must_change_password =', j.must_change_password);"
+                  "console.log('must_change_password =', j.must_change_password);",
+                  "console.log('user_type =', j.user_type);"
                 ]
               }
             }
@@ -162,7 +223,8 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"admin@ai-academy.asia\",\n  \"password\": \"CHANGE_ME\"\n}"
-            }
+            },
+            "description": "Returns access + refresh tokens, the actor, and user_type: adult | child | teacher | staff — which app experience to open."
           }
         },
         {
@@ -295,598 +357,2057 @@
               ]
             }
           }
+        },
+        {
+          "name": "Forgot password (email a code)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/forgot-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "forgot-password"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@example.com\"\n}"
+            },
+            "description": "Always 200 {status: ok} — never reveals whether the email exists. Emails a 6-digit code valid 15 min (max 3 per hour)."
+          }
+        },
+        {
+          "name": "Reset password with code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/reset-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "reset-password"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@example.com\",\n  \"code\": \"123456\",\n  \"new_password\": \"NewPass123!\"\n}"
+            },
+            "description": "Any bad/expired/used code → 400 invalid_code (5 wrong tries kill a code). Success revokes every session."
+          }
         }
       ]
     },
     {
-      "name": "Public enrolment (no auth)",
+      "name": "Public (no auth)",
+      "description": "No Authorization header anywhere in this folder.",
       "item": [
         {
-          "name": "0  Programmes (catalogue)",
-          "event": [
+          "name": "Catalogue",
+          "description": "Courses and cohorts anyone can browse.",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var a=pm.response.json(); if(a.length){",
-                  "  pm.collectionVariables.set('classroom_course_id', a[0].classroom_course_id);",
-                  "  pm.collectionVariables.set('schedule_id', a[0].schedule_id); }"
-                ]
+              "name": "Browse courses (public)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/courses?level=&category=",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "courses"
+                  ],
+                  "query": [
+                    {
+                      "key": "level",
+                      "value": "",
+                      "description": "junior | adult",
+                      "disabled": true
+                    },
+                    {
+                      "key": "category",
+                      "value": "",
+                      "disabled": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get course (by id or slug, public)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/courses/{{course_slug}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "{{course_slug}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Browse cohorts (public)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/cohorts?course_id=",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "cohorts"
+                  ],
+                  "query": [
+                    {
+                      "key": "course_id",
+                      "value": "",
+                      "disabled": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get cohort (public)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/cohorts/{{cohort_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "cohorts",
+                    "{{cohort_id}}"
+                  ]
+                }
               }
             }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/programmes?locale=mn",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "programmes"
-              ],
-              "query": [
-                {
-                  "key": "locale",
-                  "value": "mn"
-                }
-              ]
-            },
-            "description": "Захиалга хийх боломжтой (курс × cohort) хос бүрд нэг карт. UI нь audience/delivery/session КОДООР салаалдаг, *_label нь харагдах текст. Мөнгө тоогоор (currency + fee/final_fee)."
-          }
+          ]
         },
         {
-          "name": "1  Create classroom request (lead)",
-          "event": [
+          "name": "Web enrolment & checkout",
+          "description": "Маркетингийн сайтын нэргүй урсгал — акаунт БАЙХГҮЙ, Authorization header хаана ч илгээхгүй. Дараалал: 0 → 1 → 2 → 3 → 4 → 5 → 6. Хүсэлт бүр дараагийн алхамд хэрэгтэй хувьсагчийг автоматаар хадгална, тул дараалан дарахад л ажиллана.\n\nГэрээ: ai-academy-web-legacy/docs/enrolment-api.md",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j=pm.response.json(); if(j._id) pm.collectionVariables.set('classroom_request_id', j._id);"
-                ]
+              "name": "0  Programmes (catalogue)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var a=pm.response.json(); if(a.length){",
+                      "  pm.collectionVariables.set('classroom_course_id', a[0].classroom_course_id);",
+                      "  pm.collectionVariables.set('schedule_id', a[0].schedule_id); }"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/programmes?locale=mn",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "programmes"
+                  ],
+                  "query": [
+                    {
+                      "key": "locale",
+                      "value": "mn"
+                    }
+                  ]
+                },
+                "description": "Захиалга хийх боломжтой (курс × cohort) хос бүрд нэг карт. UI нь audience/delivery/session КОДООР салаалдаг, *_label нь харагдах текст. Мөнгө тоогоор (currency + fee/final_fee)."
+              }
+            },
+            {
+              "name": "1  Create classroom request (lead)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var j=pm.response.json(); if(j._id) pm.collectionVariables.set('classroom_request_id', j._id);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/classroom-requests",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "classroom-requests"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"classroom_course_id\": \"{{classroom_course_id}}\",\n  \"name\": \"Батаа Болор\",\n  \"email\": \"bolor@example.mn\",\n  \"phone_num\": \"99112233\",\n  \"phone_num2\": \"99112233\",\n  \"register_num\": \"УБ98010112\",\n  \"student_plan\": \"QPay | AI Engineer | Насанд хүрэгч | 17,900,000₮\"\n}"
+                },
+                "description": "register_num нь /^[А-ЯӨҮЁ]{2}\\d{8}$/ — сервер дээр дахин шалгагдана (и-баримт үүнийг эсрэг олгогдоно). Хариу: {_id}."
+              }
+            },
+            {
+              "name": "7  Apply coupon (optional)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/classroom-requests/{{classroom_request_id}}/coupon",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "classroom-requests",
+                    "{{classroom_request_id}}",
+                    "coupon"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"classroom_course_id\": \"{{classroom_course_id}}\",\n  \"classroom_request_id\": \"{{classroom_request_id}}\",\n  \"promotion_code\": \"AIACADEMY10\"\n}"
+                },
+                "description": "Мэдэгдэхгүй/хугацаа дууссан код -> 404 (UI «код олдсонгүй» гэнэ)."
+              }
+            },
+            {
+              "name": "2  Schedules (seat map)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/classroom-courses/{{classroom_course_id}}/schedules",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "classroom-courses",
+                    "{{classroom_course_id}}",
+                    "schedules"
+                  ]
+                },
+                "description": "Тухайн курсын бүх ажиллагаа. available_seats, locked_seats (баригдсан), paid_seats (зарагдсан). Хугацаа дууссан hold нь available руу автоматаар буцна."
+              }
+            },
+            {
+              "name": "3  Book a seat (hold)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var j=pm.response.json(); if(j.payment_token) pm.collectionVariables.set('pt', j.payment_token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/classroom-courses/{{classroom_course_id}}/bookings",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "classroom-courses",
+                    "{{classroom_course_id}}",
+                    "bookings"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"classroom_request_id\": \"{{classroom_request_id}}\",\n  \"classroom_course_schedule_id\": \"{{schedule_id}}\",\n  \"number_of_seat\": 3,\n  \"promotion_code\": \"AIACADEMY10\"\n}"
+                },
+                "description": "Суудлыг ЗАРААГҮЙ, зөвхөн барина (default 30 мин). Хүссэн суудал завгүй бол дараагийн чөлөөтэйг өгнө. Хариу: {payment_token} — цаашдын бүх алхмын түлхүүр.\n\n⚠️ Дүнг СЕРВЕР бодно: илгээсэн promotion_amount зөвлөмж төдий, бодит хямдралыг DB-ээс шалгаж тооцно."
+              }
+            },
+            {
+              "name": "4  QPay invoice",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/payments/qpay/invoice?pt={{pt}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "payments",
+                    "qpay",
+                    "invoice"
+                  ],
+                  "query": [
+                    {
+                      "key": "pt",
+                      "value": "{{pt}}"
+                    }
+                  ]
+                },
+                "description": "qr_image (base64 PNG, data: угтваргүй) эсвэл qr_text — аль нэг нь хангалттай. urls нь банкны апп товчнууд.\nQPay credential тохируулаагүй бол 501 gateway_not_configured."
+              }
+            },
+            {
+              "name": "5  Check payment",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/payments/invoice/status?pt={{pt}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "payments",
+                    "invoice",
+                    "status"
+                  ],
+                  "query": [
+                    {
+                      "key": "pt",
+                      "value": "{{pt}}"
+                    }
+                  ]
+                },
+                "description": "status_id._id === 2 бол ТӨЛӨГДСӨН. Бусад бүх утга = хараахан төлөгдөөгүй. Хэрэглэгч «Төлбөр шалгах» дарахад дуудагдана, таймераар биш."
+              }
+            },
+            {
+              "name": "6  Receipt (и-баримт)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/payments/receipt?pt={{pt}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "payments",
+                    "receipt"
+                  ],
+                  "query": [
+                    {
+                      "key": "pt",
+                      "value": "{{pt}}"
+                    }
+                  ]
+                },
+                "description": "status: pending | sent | failed. 2 секунд тутам 6 удаа хүртэл асууна, pending биш болмогц зогсоно. Баримт үүсээгүй бол pending."
+              }
+            },
+            {
+              "name": "8a StorePay invoice (optional)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var j=pm.response.json(); if(j.requestId) pm.collectionVariables.set('sp_request_id', j.requestId);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/payments/storepay/invoice",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "payments",
+                    "storepay",
+                    "invoice"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"payment_token\": \"{{pt}}\",\n  \"phone\": \"99112233\",\n  \"description\": \"AI Engineer - Пүрэв, Бямба 18:30-20:00\"\n}"
+                },
+                "description": "Дүнг payment_token-оос сервер гаргана — body-гийн amount-д итгэхгүй."
+              }
+            },
+            {
+              "name": "8b StorePay status (optional)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/payments/storepay/invoice/{{sp_request_id}}?phone=99112233",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "payments",
+                    "storepay",
+                    "invoice",
+                    "{{sp_request_id}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "phone",
+                      "value": "99112233"
+                    }
+                  ]
+                },
+                "description": "isCancelled=true бол хэрэглэгч StorePay апп дээр татгалзсан — төлбөрийн арга сонгох алхам руу буцаана."
+              }
+            },
+            {
+              "name": "Classroom courses (programme pages)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/classroom-courses",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "classroom-courses"
+                  ]
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "Classroom course",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/classroom-courses/{{classroom_course_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "classroom-courses",
+                    "{{classroom_course_id}}"
+                  ]
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "Taxpayer lookup (company name from TIN)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/payments/taxpayer?tin=5317878",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "payments",
+                    "taxpayer"
+                  ],
+                  "query": [
+                    {
+                      "key": "tin",
+                      "value": "5317878"
+                    }
+                  ]
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "Receipt customer (issue и-баримт)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/payments/receipt?pt={{pt}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "payments",
+                    "receipt"
+                  ],
+                  "query": [
+                    {
+                      "key": "pt",
+                      "value": "{{pt}}"
+                    }
+                  ]
+                },
+                "auth": {
+                  "type": "noauth"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"customer_type\": \"organization\",\n  \"customer_register\": \"5317878\"\n}"
+                },
+                "description": "{\"customer_type\": \"individual\"} or organization + customer_register."
               }
             }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/classroom-requests",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "classroom-requests"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"classroom_course_id\": \"{{classroom_course_id}}\",\n  \"name\": \"Батаа Болор\",\n  \"email\": \"bolor@example.mn\",\n  \"phone_num\": \"99112233\",\n  \"phone_num2\": \"99112233\",\n  \"register_num\": \"УБ98010112\",\n  \"student_plan\": \"QPay | AI Engineer | Насанд хүрэгч | 17,900,000₮\"\n}"
-            },
-            "description": "register_num нь /^[А-ЯӨҮЁ]{2}\\d{8}$/ — сервер дээр дахин шалгагдана (и-баримт үүнийг эсрэг олгогдоно). Хариу: {_id}."
-          }
+          ]
         },
         {
-          "name": "7  Apply coupon (optional)",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/classroom-requests/{{classroom_request_id}}/coupon",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "classroom-requests",
-                "{{classroom_request_id}}",
-                "coupon"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"classroom_course_id\": \"{{classroom_course_id}}\",\n  \"classroom_request_id\": \"{{classroom_request_id}}\",\n  \"promotion_code\": \"AIACADEMY10\"\n}"
-            },
-            "description": "Мэдэгдэхгүй/хугацаа дууссан код -> 404 (UI «код олдсонгүй» гэнэ)."
-          }
-        },
-        {
-          "name": "2  Schedules (seat map)",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/classroom-courses/{{classroom_course_id}}/schedules",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "classroom-courses",
-                "{{classroom_course_id}}",
-                "schedules"
-              ]
-            },
-            "description": "Тухайн курсын бүх ажиллагаа. available_seats, locked_seats (баригдсан), paid_seats (зарагдсан). Хугацаа дууссан hold нь available руу автоматаар буцна."
-          }
-        },
-        {
-          "name": "3  Book a seat (hold)",
-          "event": [
+          "name": "Certificate check",
+          "description": "Public page that confirms a certificate is genuine.",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j=pm.response.json(); if(j.payment_token) pm.collectionVariables.set('pt', j.payment_token);"
-                ]
+              "name": "Verify a certificate (public)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/certificates/verify/{{cert_number}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "certificates",
+                    "verify",
+                    "{{cert_number}}"
+                  ]
+                },
+                "auth": {
+                  "type": "noauth"
+                }
               }
             }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/classroom-courses/{{classroom_course_id}}/bookings",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "classroom-courses",
-                "{{classroom_course_id}}",
-                "bookings"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"classroom_request_id\": \"{{classroom_request_id}}\",\n  \"classroom_course_schedule_id\": \"{{schedule_id}}\",\n  \"number_of_seat\": 3,\n  \"promotion_code\": \"AIACADEMY10\"\n}"
-            },
-            "description": "Суудлыг ЗАРААГҮЙ, зөвхөн барина (default 30 мин). Хүссэн суудал завгүй бол дараагийн чөлөөтэйг өгнө. Хариу: {payment_token} — цаашдын бүх алхмын түлхүүр.\n\n⚠️ Дүнг СЕРВЕР бодно: илгээсэн promotion_amount зөвлөмж төдий, бодит хямдралыг DB-ээс шалгаж тооцно."
-          }
-        },
-        {
-          "name": "4  QPay invoice",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/payments/qpay/invoice?pt={{pt}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "payments",
-                "qpay",
-                "invoice"
-              ],
-              "query": [
-                {
-                  "key": "pt",
-                  "value": "{{pt}}"
-                }
-              ]
-            },
-            "description": "qr_image (base64 PNG, data: угтваргүй) эсвэл qr_text — аль нэг нь хангалттай. urls нь банкны апп товчнууд.\nQPay credential тохируулаагүй бол 501 gateway_not_configured."
-          }
-        },
-        {
-          "name": "5  Check payment",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/payments/invoice/status?pt={{pt}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "payments",
-                "invoice",
-                "status"
-              ],
-              "query": [
-                {
-                  "key": "pt",
-                  "value": "{{pt}}"
-                }
-              ]
-            },
-            "description": "status_id._id === 2 бол ТӨЛӨГДСӨН. Бусад бүх утга = хараахан төлөгдөөгүй. Хэрэглэгч «Төлбөр шалгах» дарахад дуудагдана, таймераар биш."
-          }
-        },
-        {
-          "name": "6  Receipt (и-баримт)",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/payments/receipt?pt={{pt}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "payments",
-                "receipt"
-              ],
-              "query": [
-                {
-                  "key": "pt",
-                  "value": "{{pt}}"
-                }
-              ]
-            },
-            "description": "status: pending | sent | failed. 2 секунд тутам 6 удаа хүртэл асууна, pending биш болмогц зогсоно. Баримт үүсээгүй бол pending."
-          }
-        },
-        {
-          "name": "8a StorePay invoice (optional)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j=pm.response.json(); if(j.requestId) pm.collectionVariables.set('sp_request_id', j.requestId);"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/payments/storepay/invoice",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "payments",
-                "storepay",
-                "invoice"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"payment_token\": \"{{pt}}\",\n  \"phone\": \"99112233\",\n  \"description\": \"AI Engineer - Пүрэв, Бямба 18:30-20:00\"\n}"
-            },
-            "description": "Дүнг payment_token-оос сервер гаргана — body-гийн amount-д итгэхгүй."
-          }
-        },
-        {
-          "name": "8b StorePay status (optional)",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/payments/storepay/invoice/{{sp_request_id}}?phone=99112233",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "payments",
-                "storepay",
-                "invoice",
-                "{{sp_request_id}}"
-              ],
-              "query": [
-                {
-                  "key": "phone",
-                  "value": "99112233"
-                }
-              ]
-            },
-            "description": "isCancelled=true бол хэрэглэгч StorePay апп дээр татгалзсан — төлбөрийн арга сонгох алхам руу буцаана."
-          }
+          ]
         }
-      ],
-      "description": "Маркетингийн сайтын нэргүй урсгал — акаунт БАЙХГҮЙ, Authorization header хаана ч илгээхгүй. Дараалал: 0 → 1 → 2 → 3 → 4 → 5 → 6. Хүсэлт бүр дараагийн алхамд хэрэгтэй хувьсагчийг автоматаар хадгална, тул дараалан дарахад л ажиллана.\n\nГэрээ: ai-academy-web-legacy/docs/enrolment-api.md"
+      ]
+    },
+    {
+      "name": "Account (student or teacher)",
+      "description": "Works with a student or a teacher token.",
+      "item": [
+        {
+          "name": "Profile",
+          "description": "Student: first/last name, phone. Teacher: + bio. Staff → 403.",
+          "item": [
+            {
+              "name": "Update my profile",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/profile",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "profile"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"first_name\": \"Бат\",\n  \"last_name\": \"Дорж\",\n  \"phone\": \"99112233\"\n}"
+                },
+                "description": "Student: first_name, last_name, phone. Teacher: + bio. Staff → 403."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Notifications & push",
+          "description": "Any signed-in account. Push delivery starts once FCM is configured.",
+          "item": [
+            {
+              "name": "Register push token",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/push-tokens",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "push-tokens"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"token\": \"fcm-device-token\",\n  \"platform\": \"android\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Remove push token",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/push-tokens",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "push-tokens"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"token\": \"fcm-device-token\"\n}"
+                }
+              }
+            },
+            {
+              "name": "My notifications",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/me/notifications?limit=30",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "notifications"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "30"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var j = pm.response.json();",
+                      "if ((j.notifications && j.notifications[0] ? j.notifications[0].id : null) != null) pm.collectionVariables.set('notification_id', (j.notifications && j.notifications[0] ? j.notifications[0].id : null));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Mark one read",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/me/notifications/{{notification_id}}/read",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "notifications",
+                    "{{notification_id}}",
+                    "read"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Mark all read",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/me/notifications/read-all",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "notifications",
+                    "read-all"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "Student",
-      "description": "Public course/cohort browse (no auth) + student self-service (needs a STUDENT token).",
+      "description": "Needs a STUDENT token — log in as a student first. JSON shapes: docs/course_learning_api_contract_v1.md; index: docs/mobile_api_v1.md.",
       "item": [
         {
-          "name": "Browse courses (public)",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/courses?level=&category=",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "courses"
-              ],
-              "query": [
-                {
-                  "key": "level",
-                  "value": "",
-                  "description": "junior | adult",
-                  "disabled": true
-                },
-                {
-                  "key": "category",
-                  "value": "",
-                  "disabled": true
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get course (by id or slug, public)",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/courses/{{course_slug}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "courses",
-                "{{course_slug}}"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Browse cohorts (public)",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/cohorts?course_id=",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "cohorts"
-              ],
-              "query": [
-                {
-                  "key": "course_id",
-                  "value": "",
-                  "disabled": true
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get cohort (public)",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/cohorts/{{cohort_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "cohorts",
-                "{{cohort_id}}"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Enroll self (student token)",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/cohorts/{{cohort_id}}/enroll",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "cohorts",
-                "{{cohort_id}}",
-                "enroll"
-              ]
-            },
-            "description": "Needs a STUDENT access token. Cohort must be 'open' with seats available."
-          }
-        },
-        {
-          "name": "Cancel own enrollment",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/cohorts/{{cohort_id}}/enroll",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "cohorts",
-                "{{cohort_id}}",
-                "enroll"
-              ]
-            }
-          }
-        },
-        {
-          "name": "My cohorts",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/me/cohorts",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "me",
-                "cohorts"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Create invoice (self-pay)",
-          "event": [
+          "name": "My classes",
+          "description": "Enrol into / leave a cohort; my cohorts + schedule.",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "var j = pm.response.json(); if (j.id) pm.collectionVariables.set('invoice_id', j.id);"
-                ]
+              "name": "Enroll self (student token)",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/cohorts/{{cohort_id}}/enroll",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "cohorts",
+                    "{{cohort_id}}",
+                    "enroll"
+                  ]
+                },
+                "description": "Needs a STUDENT access token. Cohort must be 'open' with seats available."
+              }
+            },
+            {
+              "name": "Cancel own enrollment",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/cohorts/{{cohort_id}}/enroll",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "cohorts",
+                    "{{cohort_id}}",
+                    "enroll"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "My cohorts",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/me/cohorts",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "cohorts"
+                  ]
+                }
               }
             }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+          ]
+        },
+        {
+          "name": "Payments & receipts",
+          "description": "Pay an enrollment or installment, poll it, see balance, invoices and eBarimt.",
+          "item": [
+            {
+              "name": "Create invoice (self-pay)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var j = pm.response.json(); if (j.id) pm.collectionVariables.set('invoice_id', j.id);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/payments/invoices",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "payments",
+                    "invoices"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"provider\": \"qpay\",\n  \"enrollment_id\": \"{{enrollment_id}}\",\n  \"amount\": 50000,\n  \"description\": \"Corporate Leaders — 1-р төлбөр\"\n}"
+                },
+                "description": "provider: qpay | storepay | golomt. Golomt буцаахдаа шилжүүлгийн заавар (данс + sender_invoice_no reference) өгнө."
               }
-            ],
-            "url": {
-              "raw": "{{base_url}}/payments/invoices",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "payments",
-                "invoices"
+            },
+            {
+              "name": "Get my invoice",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/payments/invoices/{{invoice_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "payments",
+                    "invoices",
+                    "{{invoice_id}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Poll my invoice status",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/payments/invoices/{{invoice_id}}/status",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "payments",
+                    "invoices",
+                    "{{invoice_id}}",
+                    "status"
+                  ]
+                },
+                "description": "Gateway-аас статусыг дахин шалгаад буцаана (кэш биш)."
+              }
+            },
+            {
+              "name": "My ledger (balance + installments)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/me/ledger",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "ledger"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "My invoices",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/me/invoices?limit=20",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "invoices"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "My eBarimt receipts",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/me/receipts",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "receipts"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var j = pm.response.json();",
+                      "if ((j.receipts && j.receipts[0] ? j.receipts[0].id : null) != null) pm.collectionVariables.set('receipt_id', (j.receipts && j.receipts[0] ? j.receipts[0].id : null));"
+                    ]
+                  }
+                }
               ]
             },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"provider\": \"qpay\",\n  \"enrollment_id\": \"{{enrollment_id}}\",\n  \"amount\": 50000,\n  \"description\": \"Corporate Leaders — 1-р төлбөр\"\n}"
-            },
-            "description": "provider: qpay | storepay | golomt. Golomt буцаахдаа шилжүүлгийн заавар (данс + sender_invoice_no reference) өгнө."
-          }
-        },
-        {
-          "name": "Get my invoice",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/payments/invoices/{{invoice_id}}",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "payments",
-                "invoices",
-                "{{invoice_id}}"
-              ]
+            {
+              "name": "My eBarimt receipt",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/me/receipts/{{receipt_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "receipts",
+                    "{{receipt_id}}"
+                  ]
+                }
+              }
             }
-          }
+          ]
         },
         {
-          "name": "Poll my invoice status",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/payments/invoices/{{invoice_id}}/status",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "payments",
-                "invoices",
-                "{{invoice_id}}",
-                "status"
+          "name": "Learning",
+          "item": [
+            {
+              "name": "Learning path (modules, progress, continue)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/me/courses/{{course_slug}}/learning",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "courses",
+                    "{{course_slug}}",
+                    "learning"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var j = pm.response.json();",
+                      "if ((j.modules && j.modules[0] ? j.modules[0].id : null) != null) pm.collectionVariables.set('module_id', (j.modules && j.modules[0] ? j.modules[0].id : null));",
+                      "if ((j.continue ? j.continue.lesson_id : null) != null) pm.collectionVariables.set('lesson_id', (j.continue ? j.continue.lesson_id : null));"
+                    ]
+                  }
+                }
               ]
             },
-            "description": "Gateway-аас статусыг дахин шалгаад буцаана (кэш биш)."
-          }
+            {
+              "name": "Lessons in a module",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/me/modules/{{module_id}}/lessons",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "modules",
+                    "{{module_id}}",
+                    "lessons"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var j = pm.response.json();",
+                      "if ((j.lessons && j.lessons[0] ? j.lessons[0].id : null) != null) pm.collectionVariables.set('lesson_id', (j.lessons && j.lessons[0] ? j.lessons[0].id : null));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Lesson detail",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/me/lessons/{{lesson_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "lessons",
+                    "{{lesson_id}}"
+                  ]
+                },
+                "description": "409 lesson_locked until the module's first class session date."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var j = pm.response.json();",
+                      "if ((j.materials && j.materials[0] ? j.materials[0].id : null) != null) pm.collectionVariables.set('material_id', (j.materials && j.materials[0] ? j.materials[0].id : null));",
+                      "if ((j.assignment ? j.assignment.id : null) != null) pm.collectionVariables.set('assignment_id', (j.assignment ? j.assignment.id : null));",
+                      "if ((j.quiz ? j.quiz.id : null) != null) pm.collectionVariables.set('quiz_id', (j.quiz ? j.quiz.id : null));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Mark lesson complete",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/me/lessons/{{lesson_id}}/complete",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "lessons",
+                    "{{lesson_id}}",
+                    "complete"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Save my note",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/lessons/{{lesson_id}}/note",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "lessons",
+                    "{{lesson_id}}",
+                    "note"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"content\": \"Nesting loop-ийн жишээг дахин үзэх.\"\n}"
+                },
+                "description": "Create or update — one note per student per lesson (≤ 5000 chars)."
+              }
+            },
+            {
+              "name": "Download material (pre-signed URL)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/me/materials/{{material_id}}/download",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "materials",
+                    "{{material_id}}",
+                    "download"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Assignments & files",
+          "item": [
+            {
+              "name": "Assignment (+ my latest submission, feedback)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/me/assignments/{{assignment_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "assignments",
+                    "{{assignment_id}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Upload a file",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/me/files",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "files"
+                  ]
+                },
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": [],
+                      "description": "choose a file"
+                    }
+                  ]
+                },
+                "description": "pdf, doc(x), ppt(x), xls(x), zip, png, jpg — max 20 MB."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var j = pm.response.json();",
+                      "if (j.id != null) pm.collectionVariables.set('file_id', j.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Submit / resubmit",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/assignments/{{assignment_id}}/submissions",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "assignments",
+                    "{{assignment_id}}",
+                    "submissions"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"link\": \"https://github.com/me/homework\",\n  \"description\": \"Хийсэн ажил\",\n  \"file_id\": null\n}"
+                },
+                "description": "Each call is a new version. link or file_id required. 409 past_due after due_date."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var j = pm.response.json();",
+                      "if (j.id != null) pm.collectionVariables.set('submission_id', j.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Download my file",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/me/files/{{file_id}}/download",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "files",
+                    "{{file_id}}",
+                    "download"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Quizzes",
+          "item": [
+            {
+              "name": "Start or resume attempt",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/me/quizzes/{{quiz_id}}/attempts",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "quizzes",
+                    "{{quiz_id}}",
+                    "attempts"
+                  ]
+                },
+                "description": "201 new / 200 resume. No answer key in this payload."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var j = pm.response.json();",
+                      "if (j.attempt_id != null) pm.collectionVariables.set('attempt_id', j.attempt_id);",
+                      "if ((j.questions && j.questions[0] ? j.questions[0].id : null) != null) pm.collectionVariables.set('question_id', (j.questions && j.questions[0] ? j.questions[0].id : null));",
+                      "if ((j.questions && j.questions[0] ? j.questions[0].options[0].id : null) != null) pm.collectionVariables.set('option_id', (j.questions && j.questions[0] ? j.questions[0].options[0].id : null));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Answer one question",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/quiz-attempts/{{attempt_id}}/answers",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "quiz-attempts",
+                    "{{attempt_id}}",
+                    "answers"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"question_id\": {{question_id}},\n  \"option_id\": {{option_id}}\n}"
+                },
+                "description": "Returns correct, correct_option_id, explanation. Final once answered."
+              }
+            },
+            {
+              "name": "Finish attempt",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/me/quiz-attempts/{{attempt_id}}/finish",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "quiz-attempts",
+                    "{{attempt_id}}",
+                    "finish"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Attempt (progress or result)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/me/quiz-attempts/{{attempt_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "quiz-attempts",
+                    "{{attempt_id}}"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Certificates",
+          "item": [
+            {
+              "name": "My certificate status",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/me/courses/{{course_slug}}/certificate",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "courses",
+                    "{{course_slug}}",
+                    "certificate"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var j = pm.response.json();",
+                      "if ((j.certificate ? j.certificate.cert_number : null) != null) pm.collectionVariables.set('cert_number', (j.certificate ? j.certificate.cert_number : null));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Download my certificate",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/me/certificates/{{cert_number}}/download",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "certificates",
+                    "{{cert_number}}",
+                    "download"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Attendance",
+          "item": [
+            {
+              "name": "Check in with teacher's QR",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/attendance/check-in",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "attendance",
+                    "check-in"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"token\": \"{{qr_token}}\"\n}"
+                },
+                "description": "present, or late when >15 min after start. Idempotent."
+              }
+            },
+            {
+              "name": "My attendance in a course",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/me/attendance?course={{course_slug}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "attendance"
+                  ],
+                  "query": [
+                    {
+                      "key": "course",
+                      "value": "{{course_slug}}"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
         }
       ]
     },
     {
       "name": "Teacher",
-      "description": "A teacher's own schedule (staff may view any teacher's).",
+      "description": "Needs a TEACHER token (own cohorts only), or a staff token with cohort:manage.",
       "item": [
         {
           "name": "My schedule",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/teachers/{{teacher_id}}/schedule",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "teachers",
-                "{{teacher_id}}",
-                "schedule"
-              ]
+          "description": "A teacher's own schedule (staff may view any).",
+          "item": [
+            {
+              "name": "My schedule",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/teachers/{{teacher_id}}/schedule",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "teachers",
+                    "{{teacher_id}}",
+                    "schedule"
+                  ]
+                }
+              }
             }
-          }
+          ]
+        },
+        {
+          "name": "Assignments & review",
+          "item": [
+            {
+              "name": "Cohort assignments",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/teacher/cohorts/{{cohort_id}}/assignments",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "teacher",
+                    "cohorts",
+                    "{{cohort_id}}",
+                    "assignments"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Create assignment",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/teacher/cohorts/{{cohort_id}}/assignments",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "teacher",
+                    "cohorts",
+                    "{{cohort_id}}",
+                    "assignments"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title_mn\": \"Гэрийн даалгавар 1\",\n  \"title_en\": \"Homework 1\",\n  \"instructions_mn\": \"Loop ашиглан ...\",\n  \"due_date\": \"2026-10-20\",\n  \"max_score\": 100,\n  \"lesson_id\": {{lesson_id}},\n  \"attachment_material_id\": null,\n  \"is_active\": true\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var j = pm.response.json();",
+                      "if (j.id != null) pm.collectionVariables.set('assignment_id', j.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Assignment",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/teacher/assignments/{{assignment_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "teacher",
+                    "assignments",
+                    "{{assignment_id}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Update assignment",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/teacher/assignments/{{assignment_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "teacher",
+                    "assignments",
+                    "{{assignment_id}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"due_date\": \"2026-10-25\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Delete assignment",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/teacher/assignments/{{assignment_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "teacher",
+                    "assignments",
+                    "{{assignment_id}}"
+                  ]
+                },
+                "description": "Deactivates instead when it has submissions."
+              }
+            },
+            {
+              "name": "Submissions (latest per student)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/teacher/assignments/{{assignment_id}}/submissions",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "teacher",
+                    "assignments",
+                    "{{assignment_id}}",
+                    "submissions"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var j = pm.response.json();",
+                      "if ((j.submissions && j.submissions[0] ? j.submissions[0].id : null) != null) pm.collectionVariables.set('submission_id', (j.submissions && j.submissions[0] ? j.submissions[0].id : null));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Submission + history",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/teacher/submissions/{{submission_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "teacher",
+                    "submissions",
+                    "{{submission_id}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Submission file",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/teacher/submissions/{{submission_id}}/file",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "teacher",
+                    "submissions",
+                    "{{submission_id}}",
+                    "file"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Review (score + feedback)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/teacher/submissions/{{submission_id}}/review",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "teacher",
+                    "submissions",
+                    "{{submission_id}}",
+                    "review"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"score\": 85,\n  \"feedback\": \"Сайн байна, edge case-ээ шалгаарай.\"\n}"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sessions & attendance",
+          "item": [
+            {
+              "name": "Class list",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/teacher/cohorts/{{cohort_id}}/students",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "teacher",
+                    "cohorts",
+                    "{{cohort_id}}",
+                    "students"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Sessions",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/teacher/cohorts/{{cohort_id}}/sessions?from=2026-10-01&to=2026-12-31",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "teacher",
+                    "cohorts",
+                    "{{cohort_id}}",
+                    "sessions"
+                  ],
+                  "query": [
+                    {
+                      "key": "from",
+                      "value": "2026-10-01"
+                    },
+                    {
+                      "key": "to",
+                      "value": "2026-12-31"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var j = pm.response.json();",
+                      "if ((j.sessions && j.sessions[0] ? j.sessions[0].id : null) != null) pm.collectionVariables.set('session_id', (j.sessions && j.sessions[0] ? j.sessions[0].id : null));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Generate sessions from the cohort schedule",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/teacher/cohorts/{{cohort_id}}/sessions/generate",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "teacher",
+                    "cohorts",
+                    "{{cohort_id}}",
+                    "sessions",
+                    "generate"
+                  ]
+                },
+                "description": "One session per meeting day between the cohort's start and end date."
+              }
+            },
+            {
+              "name": "Create session",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/teacher/cohorts/{{cohort_id}}/sessions",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "teacher",
+                    "cohorts",
+                    "{{cohort_id}}",
+                    "sessions"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"session_date\": \"2026-10-06\",\n  \"start_time\": \"18:00\",\n  \"end_time\": \"20:00\",\n  \"topic_id\": {{module_id}}\n}"
+                },
+                "description": "topic_id = the module this class covers (it dates/unlocks the module)."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var j = pm.response.json();",
+                      "if (j.id != null) pm.collectionVariables.set('session_id', j.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update session",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/teacher/sessions/{{session_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "teacher",
+                    "sessions",
+                    "{{session_id}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"start_time\": \"18:30\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Delete session",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/teacher/sessions/{{session_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "teacher",
+                    "sessions",
+                    "{{session_id}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Show QR (rotating token)",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/teacher/sessions/{{session_id}}/qr",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "teacher",
+                    "sessions",
+                    "{{session_id}}",
+                    "qr"
+                  ]
+                },
+                "description": "Valid 5 minutes; only on the session's day (409 session_not_today)."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var j = pm.response.json();",
+                      "if (j.token != null) pm.collectionVariables.set('qr_token', j.token);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Attendance sheet",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/teacher/sessions/{{session_id}}/attendance",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "teacher",
+                    "sessions",
+                    "{{session_id}}",
+                    "attendance"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Mark attendance manually",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/teacher/sessions/{{session_id}}/attendance/{{student_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "teacher",
+                    "sessions",
+                    "{{session_id}}",
+                    "attendance",
+                    "{{student_id}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"excused\"\n}"
+                },
+                "description": "present | late | absent | excused"
+              }
+            }
+          ]
         }
       ]
     },
@@ -1571,7 +3092,99 @@
           ]
         },
         {
-          "name": "Course content (course:edit)",
+          "name": "Schedules (schedule:manage)",
+          "item": [
+            {
+              "name": "All teachers (period overview)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/admin/schedule/teachers?from=2026-08-01&to=2026-08-31&available=",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "schedule",
+                    "teachers"
+                  ],
+                  "query": [
+                    {
+                      "key": "from",
+                      "value": "2026-08-01",
+                      "description": "YYYY-MM-DD (pair with 'to'); omit both for all-time"
+                    },
+                    {
+                      "key": "to",
+                      "value": "2026-08-31"
+                    },
+                    {
+                      "key": "available",
+                      "value": "",
+                      "description": "true = only teachers free in the period",
+                      "disabled": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "All classrooms (period overview)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/admin/schedule/classrooms?from=2026-08-01&to=2026-08-31&available=",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "schedule",
+                    "classrooms"
+                  ],
+                  "query": [
+                    {
+                      "key": "from",
+                      "value": "2026-08-01"
+                    },
+                    {
+                      "key": "to",
+                      "value": "2026-08-31"
+                    },
+                    {
+                      "key": "available",
+                      "value": "",
+                      "description": "true = only free classrooms",
+                      "disabled": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Classroom schedule (single)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/classrooms/{{classroom_id}}/schedule",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "classrooms",
+                    "{{classroom_id}}",
+                    "schedule"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Courses & templates (course:edit)",
           "item": [
             {
               "name": "Create course",
@@ -1751,93 +3364,722 @@
           ]
         },
         {
-          "name": "Schedules (schedule:manage)",
+          "name": "Modules, lessons & materials (course:edit)",
           "item": [
             {
-              "name": "All teachers (period overview)",
+              "name": "Modules of a course",
               "request": {
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{base_url}}/admin/schedule/teachers?from=2026-08-01&to=2026-08-31&available=",
+                  "raw": "{{base_url}}/admin/courses/{{course_id}}/modules",
                   "host": [
                     "{{base_url}}"
                   ],
                   "path": [
                     "admin",
-                    "schedule",
-                    "teachers"
+                    "courses",
+                    "{{course_id}}",
+                    "modules"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Create module",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/courses/{{course_id}}/modules",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "courses",
+                    "{{course_id}}",
+                    "modules"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name_mn\": \"AI хэрхэн ажилладаг вэ\",\n  \"name_en\": \"How AI works\",\n  \"sort_order\": 1\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var j = pm.response.json();",
+                      "if (j.id != null) pm.collectionVariables.set('module_id', j.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update module",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/modules/{{module_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "modules",
+                    "{{module_id}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sort_order\": 2\n}"
+                }
+              }
+            },
+            {
+              "name": "Delete module",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/admin/modules/{{module_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "modules",
+                    "{{module_id}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Lessons of a module",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/admin/modules/{{module_id}}/lessons",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "modules",
+                    "{{module_id}}",
+                    "lessons"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Create lesson",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/modules/{{module_id}}/lessons",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "modules",
+                    "{{module_id}}",
+                    "lessons"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name_mn\": \"Nesting loops\",\n  \"name_en\": \"Nesting loops\",\n  \"type\": \"recording\",\n  \"classroom_embed_url\": \"https://www.youtube.com/embed/VIDEO_ID\",\n  \"duration_seconds\": 1455,\n  \"summary_mn\": \"Товч агуулга\",\n  \"summary_en\": null,\n  \"sections\": [\n    {\n      \"title\": {\n        \"mn\": \"Зорилго\",\n        \"en\": \"Goal\"\n      },\n      \"body\": {\n        \"mn\": \"...\",\n        \"en\": null\n      },\n      \"bullets\": [\n        {\n          \"mn\": \"Нэг\",\n          \"en\": null\n        }\n      ]\n    }\n  ],\n  \"is_preview\": false,\n  \"sort_order\": 1\n}"
+                },
+                "description": "type: recording | video | reading."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var j = pm.response.json();",
+                      "if (j.id != null) pm.collectionVariables.set('lesson_id', j.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Lesson",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/admin/lessons/{{lesson_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "lessons",
+                    "{{lesson_id}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Update lesson",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/lessons/{{lesson_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "lessons",
+                    "{{lesson_id}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"duration_seconds\": 1500\n}"
+                }
+              }
+            },
+            {
+              "name": "Delete lesson",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/admin/lessons/{{lesson_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "lessons",
+                    "{{lesson_id}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Materials of a lesson",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/admin/lessons/{{lesson_id}}/materials",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "lessons",
+                    "{{lesson_id}}",
+                    "materials"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Upload material (file)",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/admin/lessons/{{lesson_id}}/materials",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "lessons",
+                    "{{lesson_id}}",
+                    "materials"
+                  ]
+                },
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": [],
+                      "description": "choose a file"
+                    },
+                    {
+                      "key": "title",
+                      "value": "Course material 1",
+                      "type": "text"
+                    },
+                    {
+                      "key": "cohort_id",
+                      "value": "",
+                      "type": "text",
+                      "description": "empty = every cohort of the course"
+                    }
+                  ]
+                },
+                "description": "Max 50 MB."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var j = pm.response.json();",
+                      "if (j.id != null) pm.collectionVariables.set('material_id', j.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Add material (link)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/lessons/{{lesson_id}}/materials",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "lessons",
+                    "{{lesson_id}}",
+                    "materials"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"link\",\n  \"title\": \"Colab notebook\",\n  \"url\": \"https://colab.research.google.com/...\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var j = pm.response.json();",
+                      "if (j.id != null) pm.collectionVariables.set('material_id', j.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update material",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/materials/{{material_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "materials",
+                    "{{material_id}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Week 2 slides\",\n  \"sort_order\": 1\n}"
+                }
+              }
+            },
+            {
+              "name": "Delete material",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/admin/materials/{{material_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "materials",
+                    "{{material_id}}"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Quizzes (course:edit)",
+          "item": [
+            {
+              "name": "Quizzes of a course",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/admin/courses/{{course_id}}/quizzes",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "courses",
+                    "{{course_id}}",
+                    "quizzes"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Create quiz",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/courses/{{course_id}}/quizzes",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "courses",
+                    "{{course_id}}",
+                    "quizzes"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name_mn\": \"Loop quiz\",\n  \"name_en\": \"Loop quiz\",\n  \"lesson_id\": {{lesson_id}},\n  \"pass_percent\": 70,\n  \"max_attempts\": null,\n  \"is_required\": true,\n  \"is_active\": true\n}"
+                },
+                "description": "max_attempts null = unlimited. is_required counts toward the certificate."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var j = pm.response.json();",
+                      "if (j.id != null) pm.collectionVariables.set('quiz_id', j.id);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Quiz (with answer key)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/admin/quizzes/{{quiz_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "quizzes",
+                    "{{quiz_id}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Update quiz",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/quizzes/{{quiz_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "quizzes",
+                    "{{quiz_id}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"pass_percent\": 80\n}"
+                }
+              }
+            },
+            {
+              "name": "Replace questions",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/quizzes/{{quiz_id}}/questions",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "quizzes",
+                    "{{quiz_id}}",
+                    "questions"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"questions\": [\n    {\n      \"question\": \"for loop дотор for loop-ийг юу гэдэг вэ?\",\n      \"explanation\": \"Nested loop гэнэ.\",\n      \"options\": [\n        {\n          \"answer\": \"Nested loop\",\n          \"is_correct\": true\n        },\n        {\n          \"answer\": \"While loop\",\n          \"is_correct\": false\n        },\n        {\n          \"answer\": \"Recursion\",\n          \"is_correct\": false\n        }\n      ]\n    }\n  ]\n}"
+                },
+                "description": "Each question ≥2 options, exactly one correct. 409 quiz_has_attempts unless ?force=true (deletes attempts)."
+              }
+            },
+            {
+              "name": "Attempts",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/admin/quizzes/{{quiz_id}}/attempts?limit=50",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "quizzes",
+                    "{{quiz_id}}",
+                    "attempts"
                   ],
                   "query": [
                     {
-                      "key": "from",
-                      "value": "2026-08-01",
-                      "description": "YYYY-MM-DD (pair with 'to'); omit both for all-time"
-                    },
-                    {
-                      "key": "to",
-                      "value": "2026-08-31"
-                    },
-                    {
-                      "key": "available",
-                      "value": "",
-                      "description": "true = only teachers free in the period",
-                      "disabled": true
+                      "key": "limit",
+                      "value": "50"
                     }
                   ]
                 }
               }
             },
             {
-              "name": "All classrooms (period overview)",
+              "name": "Delete quiz",
               "request": {
-                "method": "GET",
+                "method": "DELETE",
                 "header": [],
                 "url": {
-                  "raw": "{{base_url}}/admin/schedule/classrooms?from=2026-08-01&to=2026-08-31&available=",
+                  "raw": "{{base_url}}/admin/quizzes/{{quiz_id}}",
                   "host": [
                     "{{base_url}}"
                   ],
                   "path": [
                     "admin",
-                    "schedule",
-                    "classrooms"
+                    "quizzes",
+                    "{{quiz_id}}"
+                  ]
+                },
+                "description": "409 quiz_has_attempts unless ?force=true."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Certificates (cohort:manage)",
+          "item": [
+            {
+              "name": "Certificates",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/admin/certificates?course_id={{course_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "certificates"
                   ],
                   "query": [
                     {
-                      "key": "from",
-                      "value": "2026-08-01"
-                    },
-                    {
-                      "key": "to",
-                      "value": "2026-08-31"
-                    },
-                    {
-                      "key": "available",
-                      "value": "",
-                      "description": "true = only free classrooms",
-                      "disabled": true
+                      "key": "course_id",
+                      "value": "{{course_id}}"
                     }
                   ]
                 }
               }
             },
             {
-              "name": "Classroom schedule (single)",
+              "name": "Issue certificate",
               "request": {
-                "method": "GET",
-                "header": [],
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "url": {
-                  "raw": "{{base_url}}/classrooms/{{classroom_id}}/schedule",
+                  "raw": "{{base_url}}/admin/certificates",
                   "host": [
                     "{{base_url}}"
                   ],
                   "path": [
-                    "classrooms",
-                    "{{classroom_id}}",
-                    "schedule"
+                    "admin",
+                    "certificates"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"student_id\": {{student_id}},\n  \"course_id\": {{course_id}},\n  \"force\": false\n}"
+                },
+                "description": "409 not_eligible (with requirements) unless force; 409 already_issued."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "var j = pm.response.json();",
+                      "if (j.id != null) pm.collectionVariables.set('cert_id', j.id);",
+                      "if (j.cert_number != null) pm.collectionVariables.set('cert_number', j.cert_number);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Upload certificate PDF",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/admin/certificates/{{cert_id}}/file",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "certificates",
+                    "{{cert_id}}",
+                    "file"
+                  ]
+                },
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": [],
+                      "description": "PDF, max 20 MB"
+                    }
                   ]
                 }
+              }
+            },
+            {
+              "name": "Archive certificate",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/admin/certificates/{{cert_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "certificates",
+                    "{{cert_id}}"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Notifications (cohort:manage)",
+          "item": [
+            {
+              "name": "Announce to a cohort",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/notifications",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "notifications"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Маргаашийн хичээл\",\n  \"body\": \"18:30-аас эхэлнэ.\",\n  \"cohort_id\": {{cohort_id}}\n}"
+                },
+                "description": "Or {account_ids: [..]} instead of cohort_id. In-app only until FCM is set."
               }
             }
           ]
@@ -2113,6 +4355,48 @@
                   "raw": "{\n  \"from\": \"2026-07-22\",\n  \"to\": \"2026-08-05\"\n}"
                 },
                 "description": "Огноо өгөхгүй бол сүүлийн 14 хоног. Дансны хуулгыг татаж sender_invoice_no reference + дүнгээр тулгана."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ledger (ledger:read)",
+          "item": [
+            {
+              "name": "Get ledger",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/admin/ledger/{{enrollment_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "ledger",
+                    "{{enrollment_id}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Recompute ledger",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/admin/ledger/{{enrollment_id}}/recompute",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "ledger",
+                    "{{enrollment_id}}",
+                    "recompute"
+                  ]
+                }
               }
             }
           ]
@@ -2412,48 +4696,6 @@
                     "ebarimt",
                     "{{receipt_id}}",
                     "return"
-                  ]
-                }
-              }
-            }
-          ]
-        },
-        {
-          "name": "Ledger (ledger:read)",
-          "item": [
-            {
-              "name": "Get ledger",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{base_url}}/admin/ledger/{{enrollment_id}}",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "admin",
-                    "ledger",
-                    "{{enrollment_id}}"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Recompute ledger",
-              "request": {
-                "method": "POST",
-                "header": [],
-                "url": {
-                  "raw": "{{base_url}}/admin/ledger/{{enrollment_id}}/recompute",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "admin",
-                    "ledger",
-                    "{{enrollment_id}}",
-                    "recompute"
                   ]
                 }
               }

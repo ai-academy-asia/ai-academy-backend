@@ -12,6 +12,7 @@ from app.auth import (
     revoke_refresh_token,
     rotate_refresh_token,
 )
+from app.auth.user_type import user_type
 from app.extensions import db
 from app.models import AuthAccount
 
@@ -27,6 +28,8 @@ def _token_response(account, refresh_raw, refresh_ttl, *, include_actor=True):
         "refresh_token": refresh_raw,
         "refresh_expires_in": refresh_ttl,
         "must_change_password": account.must_change_password,
+        # adult | child | teacher | staff — which app experience to open.
+        "user_type": user_type(account),
     }
     if include_actor:
         body["actor"] = account.to_dict()
@@ -91,7 +94,7 @@ def logout_all():
 @bp.get("/me")
 @login_required
 def me():
-    return jsonify(g.current_user.to_dict())
+    return jsonify({**g.current_user.to_dict(), "user_type": user_type(g.current_user)})
 
 
 @bp.post("/change-password")

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import re
 
+from app.auth.user_type import user_type
 from app.extensions import db
 from app.models import ACTOR_STUDENT, ACTOR_TEACHER
 
@@ -66,7 +67,7 @@ def update_profile(account, data: dict) -> dict:
     for field, value in changes.items():
         setattr(profile, field, value)
     db.session.commit()
-    body = account.to_dict()
+    body = {**account.to_dict(), "user_type": user_type(account)}
     if account.actor_type == ACTOR_TEACHER and body.get("profile") is not None:
         body["profile"]["bio"] = profile.bio
     return body

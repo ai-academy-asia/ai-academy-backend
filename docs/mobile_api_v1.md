@@ -16,15 +16,26 @@ staff token with that permission (super_admin has all) · `—` no auth.
 
 | Method | Path | Who | Notes |
 |---|---|---|---|
-| POST | `/auth/login` | — | access + refresh token; `must_change_password` |
+| POST | `/auth/login` | — | access + refresh token; `must_change_password`; `user_type` |
 | POST | `/auth/refresh` | — | rotates the refresh token |
 | POST | `/auth/logout` | — | revokes this device's refresh token |
 | POST | `/auth/logout-all` | any | revokes every session |
-| GET | `/auth/me` | any | account + profile |
+| GET | `/auth/me` | any | account + profile + `user_type` |
 | POST | `/auth/change-password` | any | |
 | POST | `/auth/forgot-password` | — | always `200 {"status":"ok"}`; emails a 6-digit code (15 min) |
 | POST | `/auth/reset-password` | — | `{email, code, new_password}`; any failure = `400 invalid_code`; revokes all sessions |
 | PATCH | `/me/profile` | S, T | student: first/last name, phone; teacher: + bio |
+
+**`user_type`** — on login, refresh, `/auth/me` and `PATCH /me/profile`: which app to open.
+
+| Value | Who |
+|---|---|
+| `adult` | a student who is not a child |
+| `child` | a student in kids mode — by, in order: the admin's `ui_mode` (`kids`/`adult`), else age under 18 from `birth_date`, else an active enrollment in a `junior` course |
+| `teacher` | a teacher |
+| `staff` | back-office staff (not a mobile user) |
+
+Admins set or clear the override with `PATCH /admin/students/{id}` `{"ui_mode": "kids" \| "adult" \| ""}`.
 
 ## 2. Catalogue & enrolment
 

@@ -68,6 +68,11 @@ def _extract_profile(cfg, data):
                 value = date.fromisoformat(value)
             except (ValueError, TypeError):
                 raise ServiceError(400, "invalid_date", field=field) from None
+        if field == "ui_mode":
+            # Empty clears the override, so birth date / course level decide again.
+            value = value or None
+            if value not in (None, "kids", "adult"):
+                raise ServiceError(400, "invalid_ui_mode", allowed=["kids", "adult"])
         out[field] = value
     return out
 
