@@ -195,7 +195,10 @@ def seed_courses(publish, path):
 
 
 def register_cli(app) -> None:
+    from app.services.assignments.cleanup import files_cli
+
     app.cli.add_command(auth_cli)
+    app.cli.add_command(files_cli)
     app.cli.add_command(ebarimt_cli)
     app.cli.add_command(mail_cli)
     app.cli.add_command(seed_cli)

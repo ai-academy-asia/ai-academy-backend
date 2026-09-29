@@ -1,4 +1,10 @@
 """Import all models here so Flask-Migrate/Alembic can autodetect them."""
+from .assignment import (  # noqa: F401
+    SUBMISSION_STATUSES,
+    Assignment,
+    AssignmentSubmission,
+    StudentFile,
+)
 from .auth_account import (  # noqa: F401
     ACTOR_STAFF,
     ACTOR_STUDENT,
@@ -6,6 +12,7 @@ from .auth_account import (  # noqa: F401
     ACTOR_TYPES,
     AuthAccount,
 )
+from .certificate import Certificate, OtpVerification  # noqa: F401
 from .classroom import Classroom  # noqa: F401
 from .cohort import (  # noqa: F401
     COHORT_STATUSES,
@@ -15,6 +22,15 @@ from .cohort import (  # noqa: F401
 )
 from .course import COURSE_LEVELS, COURSE_STATUSES, Course  # noqa: F401
 from .ebarimt import EBARIMT_STATUSES, EBARIMT_TYPES, EBarimtReceipt  # noqa: F401
+from .engagement import (  # noqa: F401
+    ATTENDANCE_METHODS,
+    ATTENDANCE_STATUSES,
+    PUSH_PLATFORMS,
+    Attendance,
+    ClassSession,
+    FirebaseToken,
+    Notification,
+)
 from .enrollment import ENROLLMENT_STATUSES, Enrollment  # noqa: F401
 from .enrolment import (  # noqa: F401
     BOOKING_STATUSES,
@@ -25,7 +41,23 @@ from .enrolment import (  # noqa: F401
     SeatBooking,
     new_payment_token,
 )
+from .exam import (  # noqa: F401
+    Exam,
+    ExamOption,
+    ExamQuestion,
+    StudentExam,
+    StudentExamAnswer,
+)
 from .invoice import INVOICE_PROVIDERS, INVOICE_STATUSES, Invoice  # noqa: F401
+from .learning import (  # noqa: F401
+    LESSON_TYPES,
+    MATERIAL_TYPES,
+    CourseLesson,
+    CourseTopic,
+    LessonMaterial,
+    LessonNote,
+    LessonProgress,
+)
 from .ledger import (  # noqa: F401
     INSTALLMENT_STATUSES,
     PaymentInstallment,
