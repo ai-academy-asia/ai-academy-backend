@@ -194,6 +194,48 @@ def seed_courses(publish, path):
         click.echo(f"  · quoted in USD, stored in MNT at USD_MNT_RATE: {item}")
 
 
+@seed_cli.command("programme")
+@click.argument("keys", nargs=-1, required=True)
+@click.option("--reset", is_flag=True,
+              help="First delete what a previous run created, then seed again.")
+@click.option("--remove", is_flag=True, help="Only delete what a previous run created.")
+def seed_programme(keys, reset, remove):
+    """Test data for a running programme: engineering, corporate, online, agentic,
+    business (or all).
+
+    Creates logins like eng.s01@test.ai-academy.asia (one shared password) and a
+    course whose cohort is mid-way through, with sessions, attendance, progress,
+    quizzes, homework and payments.
+    """
+    from app.seeds_programmes import PROGRAMMES, SeedExists, run
+    from app.seeds_programmes import remove as remove_programme
+    from app.services.learning.path import today
+
+    keys = list(PROGRAMMES) if "all" in keys else list(keys)
+    unknown = [k for k in keys if k not in PROGRAMMES]
+    if unknown:
+        raise click.BadParameter(f"{unknown}; choose from {list(PROGRAMMES)} or all")
+    for key in keys:
+        if remove:
+            remove_programme(key)
+            click.echo(f"{key}: removed")
+            continue
+        try:
+            result = run(key, today=today(), reset=reset)
+        except SeedExists as exc:
+            raise click.ClickException(f"{exc} — re-run with --reset") from exc
+        click.echo(
+            f"{key}: course #{result['course_id']} {result['slug']} · "
+            f"cohort #{result['cohort_id']} · {result['lessons']} lessons "
+            f"{result['start']} → {result['end']}"
+        )
+        click.echo("  teachers: " + ", ".join(result["teachers"]))
+        click.echo(f"  students: {result['students'][0]} … {result['students'][-1]}"
+                   f"  (dropped out: {result['dropped']})")
+    if not remove:
+        click.echo(f"password for every login: {result['password']}")
+
+
 def register_cli(app) -> None:
     from app.services.assignments.cleanup import files_cli
 
