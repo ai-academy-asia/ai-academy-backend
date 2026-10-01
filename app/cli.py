@@ -201,7 +201,7 @@ def seed_courses(publish, path):
 @click.option("--remove", is_flag=True, help="Only delete what a previous run created.")
 def seed_programme(keys, reset, remove):
     """Test data for a running programme: engineering, corporate, online, agentic,
-    business (or all).
+    business, summer-kids, summer-teens (or all).
 
     Creates logins like eng.s01@test.ai-academy.asia (one shared password) and a
     course whose cohort is mid-way through, with sessions, attendance, progress,

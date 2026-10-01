@@ -1,10 +1,11 @@
-"""Test data for running programmes: ``flask seed programme <key>``.
+"""Test data for programmes: ``flask seed programme <key>``.
 
 Each programme (see :data:`PROGRAMMES`) becomes one course with its modules,
-lessons and quizzes, one cohort in progress, its teachers and students (one
-dropped out) with attendance, lesson progress, quiz attempts, homework,
-installments, payments and notifications. Dates are laid out relative to the
-day it runs, so the "currently running" picture holds whenever it is seeded.
+lessons and quizzes, one cohort, its teachers and students (one dropped out)
+with attendance, lesson progress, quiz attempts, homework, installments,
+payments and notifications. Running programmes are laid out relative to the
+day the seed runs, so the "currently running" picture holds whenever it is
+seeded; finished ones (``first_day``) keep their real dates.
 
 Not idempotent by matching rows: it refuses to run twice unless ``reset`` is
 set, which first removes everything a previous run of that programme created.
@@ -20,9 +21,10 @@ from . import activity, content, homework_money, people
 from .applied_ai_runs import CORPORATE, ONLINE
 from .business_ai_runs import AGENTIC, BUSINESS
 from .engineering import ENGINEERING
+from .junior_summer_runs import KIDS, TEENS
 from .spec import PASSWORD
 
-PROGRAMMES = {p.key: p for p in (ENGINEERING, CORPORATE, ONLINE, AGENTIC, BUSINESS)}
+PROGRAMMES = {p.key: p for p in (ENGINEERING, CORPORATE, ONLINE, AGENTIC, BUSINESS, KIDS, TEENS)}
 
 
 class SeedExists(Exception):

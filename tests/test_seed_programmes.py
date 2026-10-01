@@ -80,6 +80,8 @@ def test_refuses_twice_resets_and_removes_one_programme_only(app, db):
     ("online", "online.s01", [False, False, True, True]),
     ("agentic", "agentic.s01", [False, False, False, True]),
     ("business", "biz.s01", [False, False, True, True]),
+    ("summer-kids", "jr10.s01", [False, False, False]),
+    ("summer-teens", "jr14.s01", [False, False, False]),
 ])
 def test_student_sees_the_path_unlocked_up_to_today(app, db, client, key, login, locked):
     result = run(key, today=date.today())
@@ -106,3 +108,22 @@ def test_agentic_and_business_are_separate_courses_on_one_syllabus(app, db):
     assert agentic["course_id"] != business["course_id"]
     assert _accounts("agentic") == _accounts("biz") == 12
     assert Exam.query.count() == 4
+
+
+@pytest.mark.parametrize("key, first, last", [
+    ("summer-kids", date(2026, 6, 16), date(2026, 7, 9)),
+    ("summer-teens", date(2026, 6, 15), date(2026, 7, 8)),
+])
+def test_summer_camps_are_finished_on_their_real_dates(app, db, key, first, last):
+    from app.models import Enrollment, Student
+    from app.services.certificates.eligibility import requirements
+
+    result = run(key, today=TODAY)
+    assert (result["start"], result["end"], result["lessons"]) == (first, last, 11)
+
+    enrollment = Enrollment.query.order_by(Enrollment.id).first()   # the most diligent
+    best = db.session.get(Student, enrollment.student_id)
+    assert best.parent_name == best.last_name
+    course = db.session.get(Course, result["course_id"])
+    reqs = requirements(best.id, course, enrollment)
+    assert all(item["done"] for item in reqs.values()), reqs

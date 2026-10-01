@@ -38,6 +38,9 @@ def create_students(spec) -> list[tuple]:
             phone=phone, must_change_password=False,
         )
         student.birth_date = date(year, 3 + len(first) % 9, 1 + len(last) % 27)
+        if spec.course.get("level") == "junior":
+            # A Mongolian patronymic is the parent's given name.
+            student.parent_name, student.parent_phone = last, "99" + phone[2:]
         out.append((student, diligence, pay, row is spec.dropped))
     return out
 

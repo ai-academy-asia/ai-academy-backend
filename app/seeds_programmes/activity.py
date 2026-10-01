@@ -33,6 +33,9 @@ def _class_days(spec, start: date, step: int):
 
 def calendar(spec, today: date) -> list[date]:
     """One class date per lesson; the current lesson falls on the last class before today."""
+    if spec.first_day is not None:
+        days = _class_days(spec, spec.first_day, 1)
+        return [next(days) for _ in range(spec.lesson_count)]
     back = _class_days(spec, today - timedelta(days=1), -1)
     past = [next(back) for _ in range(spec.current_lesson + 1)][::-1]
     ahead = _class_days(spec, today, 1)

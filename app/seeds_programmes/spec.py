@@ -47,6 +47,9 @@ class Programme:
     holidays: frozenset = frozenset({date(2026, 7, d) for d in range(10, 16)})
     due_after_days: int = 7
     news: tuple[str, str] | None = None               # one read announcement
+    # A run with real dates (e.g. a finished summer camp): classes are laid out
+    # forward from this day instead of around today, and current_lesson is unused.
+    first_day: date | None = None
 
     def email(self, login: str) -> str:
         return f"{login}@{EMAIL_DOMAIN}"
