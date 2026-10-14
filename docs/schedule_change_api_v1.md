@@ -14,7 +14,7 @@ staff and student tokens get `403 forbidden`, no token `401`.
 | 4 | Duplicates | One `pending` request per session (DB unique index). Re-sending the identical request (same recipient + message) returns the existing one with `200` — no second row or notification. A different recipient while pending → `409 request_pending`. |
 | 5 | Concurrency | Decisions lock the request row (`SELECT … FOR UPDATE`); acceptance also locks the recipient's teacher row. At most one `accepted` request per session (DB unique index). |
 | 6 | Visibility | Schedule entry only. The covering teacher does **not** get attendance/QR/roster access to that cohort in v1 (attendance unchanged, per spec). |
-| 7 | Notifications | In-app only (push hook is still a no-op without FCM). See §5. |
+| 7 | Notifications | In-app, and pushed through FCM when `FCM_CREDENTIALS` is set (issue #2, `mobile_api_v1.md` §9). See §5. |
 | 8 | Authorization | Only the cohort's own teacher can send for a session and cancel; only the recipient can accept/reject. Anyone else gets `404` (the API does not confirm other people's requests exist); the other party gets `403 not_recipient` / `not_sender`. |
 | 9 | Cancel / expiry | Sender may cancel a pending request. A pending request becomes `expired` once the session's local start (Asia/Ulaanbaatar) has come; it is settled lazily when either party reads or acts on it, and actions then answer `409 session_started`. |
 | 10 | Audit | `created_at`, `updated_at`, `resolved_at`, `resolved_by_teacher_id` (recipient for accept/reject, sender for cancel, `null` for expiry) + an info log line per create/resolve. |

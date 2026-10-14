@@ -149,8 +149,22 @@ Class handover (schedule-change) requests: see `docs/schedule_change_api_v1.md`.
 | POST | `/me/notifications/{id}/read`, `/me/notifications/read-all` | any | |
 | POST | `/admin/notifications` | staff:cohort:manage | to a cohort or to account ids |
 
-Push delivery is **not active**: notifications are stored and listed in-app; sending via
-FCM starts once `FCM_CREDENTIALS` is configured (`app/services/notifications/push.py`).
+Every notification is stored and listed in-app. **Push** (issue #2): when `FCM_CREDENTIALS`
+holds a Firebase service account (its JSON, or a path to it), `notify()` also sends one FCM
+HTTP v1 message per registered device of each recipient (`app/services/notifications/fcm.py`):
+
+- `notification`: `{title, body}` (no `body` when the notification has none);
+- `data`, every value a string: the notification's own `data` keys, `kind`, and the
+  recipient's own `notification_id` (the in-app row — what the app opens on a tap);
+- `android.priority: HIGH`; `apns.payload.aps.sound: "default"`.
+
+A device FCM reports `UNREGISTERED` is deleted from `firebase_tokens`; any other failure is
+logged and the request still succeeds. Without `FCM_CREDENTIALS` nothing is sent. Sends are
+synchronous, one HTTP call per device (fine at current cohort sizes; batch or queue them if
+announcements grow). Devices are addressed by `message.token` — deprecated by FCM in favour
+of `fid`, but still accepted for the registration tokens the app's `firebase_messaging`
+issues. `/auth/logout` does not remove device tokens; the app removes its own before it
+signs out.
 
 ## 10. Staff content authoring (admin panel, not the app)
 

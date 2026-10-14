@@ -35,14 +35,17 @@ def notify(account_ids, *, kind, title, body=None, data=None) -> int:
     if not ids:
         return 0
     now = utcnow()
-    db.session.add_all([
+    rows = [
         Notification(account_id=a, kind=kind or "general", title=title, body=body,
                      data=data, created_at=now)
         for a in ids
-    ])
+    ]
+    db.session.add_all(rows)
     db.session.commit()
     try:
-        push.send_push(ids, kind=kind, title=title, body=body, data=data)
+        # Each push names its recipient's own row, so a tap opens it.
+        push.send_push(ids, kind=kind, title=title, body=body, data=data,
+                       notification_ids={n.account_id: n.id for n in rows})
     except Exception:  # noqa: BLE001 — push is best-effort by design
         log.exception("push hook failed for kind=%s", kind)
     return len(ids)

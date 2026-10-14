@@ -5,6 +5,8 @@ psycopg2-binary==2.9.9
 python-dotenv==1.0.1
 requests==2.32.3
 PyJWT==2.9.0
+# RS256 for the FCM service-account grant (issue #2); already installed with pdfminer.six.
+cryptography==50.0.2
 boto3==1.42.97
 segno==1.6.1
 pdfminer.six==20251107

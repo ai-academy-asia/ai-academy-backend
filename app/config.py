@@ -123,6 +123,11 @@ class Config:
     STOREPAY_PASSWORD = os.getenv("STOREPAY_PASSWORD")
     STOREPAY_STORE_ID = os.getenv("STOREPAY_STORE_ID")
     STOREPAY_TOKEN_PATH = os.getenv("STOREPAY_TOKEN_PATH", "/oauth/token")
+
+    # Push through FCM HTTP v1 (issue #2): a Firebase service account — its JSON,
+    # or a path to the JSON file. Unset: notifications stay in-app only.
+    FCM_CREDENTIALS = os.getenv("FCM_CREDENTIALS")
+    FCM_HTTP_TIMEOUT = int(os.getenv("FCM_HTTP_TIMEOUT", "10"))
     STOREPAY_LOAN_PATH = os.getenv("STOREPAY_LOAN_PATH", "/merchant/loan")
     STOREPAY_DETAILS_PATH = os.getenv("STOREPAY_DETAILS_PATH", "/merchant/loan/details")
 
