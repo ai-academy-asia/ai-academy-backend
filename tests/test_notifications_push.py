@@ -4,16 +4,21 @@ Every outbound call is stubbed at ``fcm.http_post``; the service account is a
 throwaway RSA key made here, so the real RS256 grant is exercised and checked.
 """
 import json
+import logging
 
 import jwt
 import pytest
 import requests
+import schedule_change_helpers
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 from app.models import FirebaseToken, Notification
 from app.services import notifications as notif_svc
 from app.services.notifications import fcm
+
+handover = schedule_change_helpers.handover     # the schedule-change fixtures (issue #3)
+clock = schedule_change_helpers.clock
 
 _KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 CREDS = {
@@ -231,3 +236,41 @@ def test_an_admin_announcement_reaches_the_cohorts_devices(client, db, admin_hea
     data = sent["json"]["message"]["data"]
     assert data["kind"] == "announcement" and data["cohort_id"] == str(cohort.id)
     assert data["notification_id"] == str(Notification.query.one().id)
+
+
+# ------------------------------------------------- pinned behaviour (issue #3)
+@pytest.mark.parametrize("status, code", [(400, "INVALID_ARGUMENT"),      # malformed token
+                                          (403, "SENDER_ID_MISMATCH")])   # another project's
+def test_other_fcm_errors_are_logged_and_keep_the_token(db, make_student, fcm_http,
+                                                        caplog, monkeypatch, status, code):
+    calls, answers = fcm_http
+    student, _ = make_student()
+    _device(db, student, "bad")
+    _device(db, student, "good")
+    answers["bad"] = _fcm_error(status, code)
+    # conftest's migrations run Alembic's fileConfig, which disables loggers that
+    # already exist (fcm's among them) for the rest of the session: re-enable it.
+    monkeypatch.setattr(logging.getLogger(fcm.__name__), "disabled", False)
+    with caplog.at_level("WARNING", logger=fcm.__name__):
+        reached = notif_svc.push.send_push([student.id], kind="general", title="Hi")
+    assert reached == 1                                     # "good" still sent
+    assert [s["json"]["message"]["token"] for s in _sends(calls)] == ["bad", "good"]
+    assert {t.token for t in FirebaseToken.query.all()} == {"bad", "good"}
+    assert f"fcm send failed: HTTP {status} {code}" in caplog.text
+
+
+def test_a_schedule_change_request_pushes_the_recipients_own_notification(
+        client, db, handover, fcm_http):
+    calls, _ = fcm_http
+    h = handover
+    _device(db, h["b"], "dev-b")                            # the recipient
+    _device(db, h["a"], "dev-a")                            # the sender: no push
+    resp = schedule_change_helpers.send(client, h["a_h"], h["session"].id, h["b"].actor_id)
+    assert resp.status_code == 201
+    (sent,) = _sends(calls)
+    message = sent["json"]["message"]
+    assert message["token"] == "dev-b"
+    note = Notification.query.filter_by(account_id=h["b"].id).one()
+    assert message["data"]["kind"] == "schedule_change_request"
+    assert message["data"]["notification_id"] == str(note.id)
+    assert message["data"]["request_id"] == str(resp.get_json()["id"])
