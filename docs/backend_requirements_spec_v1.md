@@ -11,7 +11,7 @@ Tracking issue: [#5](https://github.com/ai-academy-asia/ai-academy-backend/issue
 | Backend (this repo) | `ai-academy-asia/ai-academy-backend` | `main` at `c6e6ce0` |
 | Push delivery (open PR) | [PR #4](https://github.com/ai-academy-asia/ai-academy-backend/pull/4), from the `AlimaaBayarmaa` fork | `a6f8767` |
 | Mobile app (Flutter) | `ai-academy-asia/ai-academy-mobile-legacy` | `main` at `96f40ae` |
-| Admin Panel (Next.js) | `ai-academy-asia/ai-academy-admin-panel` | `main`, plus branch `feat/quiz-management` (`e55452c`) |
+| Admin Panel (Next.js) | `ai-academy-asia/ai-academy-admin-panel` | `main`, plus branch `feat/quiz-management` (`af20f61`) |
 
 **How to read it:**
 - Statements about current behaviour cite the source: a file, route, test or Issue.
@@ -106,8 +106,8 @@ Pure UI defects are excluded unless they expose a missing backend contract.
 - **Admin Panel:**
   - Sign-in is for `super_admin` only (`panel:src/lib/auth/session-core.ts`).
   - The sidebar has Students, Courses, Classrooms and Staff (`panel:src/components/layout/nav-items.ts`).
-  - Quiz management exists only on the unmerged branch `feat/quiz-management`, which also has
-    uncommitted work in progress.
+  - Quiz management exists only on the branch `feat/quiz-management` (`af20f61`, pushed, five
+    commits ahead of panel `main`, not yet merged).
 - **Not audited:** `admin-web`, a local-only scaffold with no remote and one commit. It runs on
   mocks; its endpoint map is intentionally empty (`admin-web:src/lib/api/endpoints.ts`).
 
@@ -181,7 +181,7 @@ These need panel work only; the backend is ready. Details are in §6.
 | ADM-3 | Class sessions (needed for attendance and module locks) | `/teacher/cohorts/<id>/sessions[/generate]`, `/teacher/sessions/<id>` (super_admin passes) | P1 |
 | ADM-4 | Announcements | `POST /admin/notifications` | P1, after PUSH-1 |
 | ADM-5 | Contracts list, reset and templates | `/admin/contracts*`, `/admin/courses/<id>/templates/contract` | P1 |
-| ADM-6 | Quizzes | `/admin/courses/<id>/quizzes`, `/admin/quizzes/<id>*`. The panel branch `feat/quiz-management` needs finishing and merging | P1 |
+| ADM-6 | Quizzes | `/admin/courses/<id>/quizzes`, `/admin/quizzes/<id>*`. The panel branch `feat/quiz-management` (`af20f61`) needs review and merging | P1 |
 | ADM-7 | Certificates and templates | `/admin/certificates*`, `/admin/cohorts/<id>/certificates`, templates `kind=cert` | P2 |
 | ADM-8 | Lesson video URL and material cohort scoping | `PATCH /admin/lessons/<id>` (`classroom_embed_url`), material `cohort_id` | P2 |
 | ADM-9 | Student birth date and parent contact | `PATCH /admin/students/<id>` accepts `birth_date`, `parent_name`, `parent_phone` (`services/users.py:19-20`) | P2 |
