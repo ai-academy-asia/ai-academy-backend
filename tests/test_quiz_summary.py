@@ -64,11 +64,14 @@ def test_summary_open_attempt_and_unlimited(client, db, make_student, make_cours
 def test_required_quizzes_passed(client, db, make_student, make_course, make_quiz, enroll):
     account, headers, course, _ = _setup(db, make_student, make_course, enroll)
     assert required_quizzes_passed(account.actor_id, course.id) == {"passed": 0, "required": 0}
-    a = make_quiz(course=course)
-    b = make_quiz(course=course)
-    make_quiz(course=course, is_required=False)
-    make_quiz(course=course, is_active=False)
-    make_quiz(course=course, questions=0)
+    def on_lesson(**fields):
+        return make_quiz(course=course, lesson=add_lesson(db, course), **fields)
+
+    a = on_lesson()
+    b = on_lesson()
+    on_lesson(is_required=False)
+    on_lesson(is_active=False)
+    on_lesson(questions=0)
     make_quiz()   # another course
     assert required_quizzes_passed(account.actor_id, course.id) == {"passed": 0, "required": 2}
 
@@ -79,3 +82,40 @@ def test_required_quizzes_passed(client, db, make_student, make_course, make_qui
     assert required_quizzes_passed(account.actor_id, course.id) == {"passed": 1, "required": 2}
     other, _ = make_student()
     assert required_quizzes_passed(other.actor_id, course.id) == {"passed": 0, "required": 2}
+
+
+def test_unreachable_quizzes_never_block_a_certificate(db, make_student, make_course,
+                                                       make_quiz, enroll, client, admin_headers):
+    """A quiz with no lesson (its lesson deleted) or behind the lesson's first quiz
+    cannot be opened from the app, so it is not required."""
+    account, _, course, lesson = _setup(db, make_student, make_course, enroll)
+    make_quiz(course=course, lesson=lesson)
+    make_quiz(course=course, lesson=lesson)        # second on the same lesson (old data)
+    doomed = add_lesson(db, course, name="Doomed")
+    make_quiz(course=course, lesson=doomed)
+    assert required_quizzes_passed(account.actor_id, course.id)["required"] == 2
+    assert client.delete(f"/admin/lessons/{doomed.id}", headers=admin_headers).status_code == 200
+    counts = required_quizzes_passed(account.actor_id, course.id)
+    assert counts == {"passed": 0, "required": 1}
+
+
+def test_second_active_quiz_on_a_lesson_is_refused(client, db, make_course, make_quiz,
+                                                   admin_headers):
+    course = make_course()
+    lesson = add_lesson(db, course)
+    first = make_quiz(course=course, lesson=lesson)
+    resp = client.post(f"/admin/courses/{course.id}/quizzes", headers=admin_headers,
+                       json={"name_mn": "Дахиад", "lesson_id": lesson.id})
+    assert resp.status_code == 409
+    assert resp.get_json() == {"error": "lesson_has_quiz", "quiz_id": first.id}
+    other = make_quiz(course=course, lesson=add_lesson(db, course))
+    resp = client.patch(f"/admin/quizzes/{other.id}", headers=admin_headers,
+                        json={"lesson_id": lesson.id})
+    assert resp.status_code == 409
+    # An inactive quiz may sit on the lesson; reactivating it is what clashes.
+    resp = client.patch(f"/admin/quizzes/{other.id}", headers=admin_headers,
+                        json={"lesson_id": lesson.id, "is_active": False})
+    assert resp.status_code == 200
+    resp = client.patch(f"/admin/quizzes/{other.id}", headers=admin_headers,
+                        json={"is_active": True})
+    assert resp.status_code == 409

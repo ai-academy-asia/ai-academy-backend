@@ -1,8 +1,10 @@
 """A student's own attendance in a course, and the attendance percentage.
 
-"Past" means the session's date is today or earlier (Ulaanbaatar). A past
-session with no record counts as ``absent``; ``present`` and ``late`` count as
-attended; ``excused`` is neither attended nor excluded from the total.
+A session counts once it has ended (Ulaanbaatar time; see ``clock.local_end``) or
+once it has a record — a student who checked in this morning is not left out. An
+ended session with no record counts as ``absent``; before it ends its status is
+``None``, so the morning of a class never lowers the percentage. ``present`` and
+``late`` count as attended; ``excused`` is neither attended nor excluded.
 """
 from app.models import Attendance, ClassSession
 from app.services.access import course_by_slug, enrollment_for_course
@@ -30,12 +32,11 @@ def _rows(enrollment):
                 Attendance.student_id == enrollment.student_id,
             ).all()
         }
-    today = clock.local_today()
     rows = []
     for s in sessions:
-        past = s.session_date <= today
-        status = records.get(s.id) or ("absent" if past else None)
-        rows.append((s, status, past))
+        ended = clock.has_ended(s)
+        status = records.get(s.id) or ("absent" if ended else None)
+        rows.append((s, status, ended or s.id in records))
     return rows
 
 

@@ -130,3 +130,49 @@ def test_my_attendance_errors(client, klass, make_student, make_course):
     assert client.get("/me/attendance?course=corp-leaders",
                       headers=klass["t_headers"]).status_code == 403
     assert client.get("/me/attendance?course=corp-leaders").status_code == 401
+
+
+# ----------------------------------------------------------------- BE-08 / BE-09
+def test_todays_session_counts_only_once_it_ends(client, klass, clock):
+    """09:00–11:00 today: not missed at 10:59, missed from 11:00."""
+    sid = _sid(client, klass, session_date="2026-10-08")
+    url, h = "/me/attendance?course=corp-leaders", klass["s_headers"]
+    clock(datetime(2026, 10, 8, 10, 59))
+    data = client.get(url, headers=h).get_json()
+    assert data["sessions"][0]["status"] is None
+    assert data["summary"] == {"attended": 0, "total_past": 0, "percent": 0}
+    clock(datetime(2026, 10, 8, 11, 0))
+    data = client.get(url, headers=h).get_json()
+    assert data["sessions"][0]["status"] == "absent"
+    assert data["summary"]["total_past"] == 1
+    assert sid == data["sessions"][0]["session_id"]
+
+
+def test_session_without_end_time_runs_the_default_length(client, klass, clock):
+    _sid(client, klass, session_date="2026-10-08", start_time="23:00", end_time=None)
+    url, h = "/me/attendance?course=corp-leaders", klass["s_headers"]
+    clock(datetime(2026, 10, 9, 0, 29))
+    assert client.get(url, headers=h).get_json()["summary"]["total_past"] == 0
+    clock(datetime(2026, 10, 9, 0, 30))
+    assert client.get(url, headers=h).get_json()["summary"]["total_past"] == 1
+
+
+def test_check_in_before_the_end_counts_at_once(client, klass, clock):
+    sid = _sid(client, klass)
+    clock(datetime(2026, 10, 1, 9, 5))
+    _mark(client, klass, sid, klass["student"].actor_id, "present")
+    summary = client.get("/me/attendance?course=corp-leaders",
+                         headers=klass["s_headers"]).get_json()["summary"]
+    assert summary == {"attended": 1, "total_past": 1, "percent": 100}
+
+
+def test_marking_a_future_session_is_refused(client, db, klass, clock):
+    future = _sid(client, klass, session_date="2026-10-02")
+    resp = _mark(client, klass, future, klass["student"].actor_id, "present")
+    assert resp.status_code == 409
+    assert resp.get_json()["error"] == "session_in_future"
+    assert Attendance.query.count() == 0
+    today = _sid(client, klass, session_date="2026-10-01", start_time="20:00", end_time=None)
+    assert _mark(client, klass, today, klass["student"].actor_id, "present").status_code == 200
+    clock(datetime(2027, 3, 1, 12, 0))  # no limit on correcting the past
+    assert _mark(client, klass, today, klass["student"].actor_id, "late").status_code == 200

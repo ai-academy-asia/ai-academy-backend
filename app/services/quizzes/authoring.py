@@ -85,6 +85,19 @@ def _apply(quiz, data, *, creating):
                 raise ServiceError(400, f"invalid_{key}")
             setattr(quiz, key, data[key])
     _placement(quiz, data)
+    _one_quiz_per_lesson(quiz)
+
+
+def _one_quiz_per_lesson(quiz):
+    """The app shows one quiz per lesson; a second active one could never be taken."""
+    if not (quiz.lesson_id and quiz.is_active):
+        return
+    clash = Exam.query.filter(Exam.lesson_id == quiz.lesson_id, Exam.is_active.is_(True))
+    if quiz.id is not None:
+        clash = clash.filter(Exam.id != quiz.id)
+    other = clash.first()
+    if other is not None:
+        raise ServiceError(409, "lesson_has_quiz", quiz_id=other.id)
 
 
 # ---------------------------------------------------------------- CRUD

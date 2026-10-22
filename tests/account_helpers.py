@@ -148,11 +148,19 @@ def complete(db):
 
 @pytest.fixture
 def make_quiz(db):
-    """``make_quiz(course, passed_by=None, required=True, questions=1)`` -> Exam."""
-    from app.models import Exam, ExamQuestion, StudentExam
+    """``make_quiz(course, passed_by=None, required=True, questions=1)`` -> Exam, on a
+    lesson of its own (a student reaches a quiz only from its lesson)."""
+    from app.models import CourseLesson, CourseTopic, Exam, ExamQuestion, StudentExam
 
     def _make(course, passed_by=None, required=True, questions=1):
-        exam = Exam(course_id=course.id, name_mn="Шалгалт", is_required=required)
+        topic = CourseTopic(course_id=course.id, name_mn="Модуль")
+        db.session.add(topic)
+        db.session.flush()
+        lesson = CourseLesson(topic_id=topic.id, name_mn="Хичээл")
+        db.session.add(lesson)
+        db.session.flush()
+        exam = Exam(course_id=course.id, lesson_id=lesson.id, topic_id=topic.id,
+                    name_mn="Шалгалт", is_required=required)
         db.session.add(exam)
         db.session.flush()
         for i in range(questions):

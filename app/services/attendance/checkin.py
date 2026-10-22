@@ -112,6 +112,10 @@ def session_attendance(account, session_id) -> dict:
 
 def mark(account, session_id, student_id, status) -> dict:
     session = session_for_teacher(account, session_id)
+    # Past sessions stay correctable without limit; a class that has not happened
+    # yet cannot have been attended.
+    if session.session_date > clock.local_today():
+        raise ServiceError(409, "session_in_future")
     if status not in ATTENDANCE_STATUSES:
         raise ServiceError(400, "invalid_status", allowed=list(ATTENDANCE_STATUSES))
     on_roster = Enrollment.query.filter_by(

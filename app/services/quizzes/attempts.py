@@ -109,7 +109,10 @@ def answer_question(student_id, attempt_id, data) -> dict:
     if attempt.completed_at is not None:
         raise ServiceError(409, "attempt_finished")
     quiz = _quiz_of(attempt)
-    enrollment_for_course(student_id, quiz.course_id)
+    enrollment = enrollment_for_course(student_id, quiz.course_id)
+    # Answering is new work, so a module locked again (its class moved later) stops
+    # it; finishing and reading an attempt stay open — the work is already done.
+    ensure_module_open(_quiz_topic_id(quiz), enrollment.cohort_id)
 
     question = get_by_id(ExamQuestion, data.get("question_id"))
     if question is None or question.exam_id != quiz.id:

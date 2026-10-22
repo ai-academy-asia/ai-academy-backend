@@ -30,5 +30,26 @@ def local_start(session_date, start_time: str):
     return datetime.combine(session_date, time(hours, minutes), tzinfo=timeutil.LOCAL_TZ)
 
 
+# A session with a start but no end time is taken to run this long.
+DEFAULT_SESSION_MINUTES = 90
+
+
+def local_end(session):
+    """When a session is over, as a zone-aware Ulaanbaatar datetime: its end time,
+    else start + the default length, else the end of its day."""
+    end = local_start(session.session_date, session.end_time)
+    if end is not None:
+        return end
+    start = local_start(session.session_date, session.start_time)
+    if start is not None:
+        return plus_minutes(start, DEFAULT_SESSION_MINUTES)
+    return datetime.combine(session.session_date + timedelta(days=1), time(0),
+                            tzinfo=timeutil.LOCAL_TZ)
+
+
+def has_ended(session) -> bool:
+    return local_now() >= local_end(session)
+
+
 def plus_minutes(value: datetime, minutes: int) -> datetime:
     return value + timedelta(minutes=minutes)

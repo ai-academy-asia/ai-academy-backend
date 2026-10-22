@@ -46,7 +46,8 @@ def locked(db, make_student, make_course, make_cohort):
                         ExamOption(question_id=question.id, answer="B", sort_order=1)])
     db.session.commit()
     return {"headers": headers, "session": session, "material": material.id,
-            "quiz": quiz.id, "assignment": assignment.id}
+            "quiz": quiz.id, "assignment": assignment.id, "lesson": lesson.id,
+            "question": question.id, "student_id": account.actor_id}
 
 
 def _calls(ids):
@@ -56,6 +57,7 @@ def _calls(ids):
         ("get", f"/me/assignments/{ids['assignment']}", None),
         ("post", f"/me/assignments/{ids['assignment']}/submissions",
          {"link": "https://example.com/hw"}),
+        ("put", f"/me/lessons/{ids['lesson']}/note", {"content": "Тэмдэглэл"}),
     ]
 
 
@@ -73,3 +75,21 @@ def test_it_opens_on_the_class_date(client, db, locked, monkeypatch):
     for method, url, body in _calls(locked):
         resp = getattr(client, method)(url, headers=locked["headers"], json=body)
         assert resp.status_code in (200, 201), (url, resp.get_json())
+
+
+def test_answering_is_locked_but_finishing_and_reading_are_not(client, db, locked):
+    """An attempt opened while the module was open; then its class moved later."""
+    from app.models import ExamOption, StudentExam
+    from app.timeutil import utcnow
+
+    attempt = StudentExam(exam_id=locked["quiz"], student_id=locked["student_id"],
+                          started_at=utcnow())
+    db.session.add(attempt)
+    db.session.commit()
+    option = ExamOption.query.filter_by(question_id=locked["question"], is_correct=True).one()
+    h = locked["headers"]
+    resp = client.post(f"/me/quiz-attempts/{attempt.id}/answers", headers=h,
+                       json={"question_id": locked["question"], "option_id": option.id})
+    assert (resp.status_code, resp.get_json()["error"]) == (409, "lesson_locked")
+    assert client.post(f"/me/quiz-attempts/{attempt.id}/finish", headers=h).status_code == 200
+    assert client.get(f"/me/quiz-attempts/{attempt.id}", headers=h).status_code == 200

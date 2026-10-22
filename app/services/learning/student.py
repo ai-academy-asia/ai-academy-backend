@@ -168,7 +168,8 @@ def complete_lesson(student_id, lesson_id) -> dict:
 # ---------------------------------------------------------------- §2.5
 def put_note(student_id, lesson_id, data) -> tuple:
     """Upsert the student's note. Returns ``(note dict, created)``."""
-    lesson, _ = lesson_for_student(student_id, lesson_id)
+    lesson, enrollment = lesson_for_student(student_id, lesson_id)
+    ensure_module_open(lesson.topic_id, enrollment.cohort_id)
     content = data.get("content")
     content = content.strip() if isinstance(content, str) else ""
     if not content:

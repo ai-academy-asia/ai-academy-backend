@@ -55,14 +55,23 @@ def quiz_summary_for_lesson(student_id, lesson):
 
 
 def required_quizzes_passed(student_id, course_id) -> dict:
-    """``{"passed", "required"}`` over the course's active, required quizzes.
+    """``{"passed", "required"}`` over the quizzes a student can actually reach.
 
-    A quiz with no questions cannot be taken, so it is not required yet.
+    The app opens a quiz only from its lesson, and only the one
+    :func:`quiz_summary_for_lesson` picks (lowest id). So a quiz is required when
+    it is that lesson's quiz and marked required; one left without a lesson (its
+    lesson deleted) or behind another on the same lesson can never block a
+    certificate. A quiz with no questions cannot be taken, so it is not required yet.
     """
+    reachable = (
+        db.session.query(func.min(Exam.id))
+        .filter(Exam.course_id == course_id, Exam.lesson_id.isnot(None),
+                Exam.is_active.is_(True), _has_questions())
+        .group_by(Exam.lesson_id)
+    )
     required_ids = [
         row.id for row in db.session.query(Exam.id).filter(
-            Exam.course_id == course_id, Exam.is_active.is_(True),
-            Exam.is_required.is_(True), _has_questions(),
+            Exam.id.in_(reachable), Exam.is_required.is_(True),
         )
     ]
     if not required_ids:
