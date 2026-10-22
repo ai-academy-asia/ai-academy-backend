@@ -57,6 +57,33 @@ def test_update_blank_email_is_400(client, admin_headers, make_actor, segment):
     assert resp.get_json()["error"] == "email_required"
 
 
+@pytest.mark.parametrize("segment", SEGMENTS)
+@pytest.mark.parametrize("blank", ["", "   ", None, 7])
+def test_update_blank_first_name_is_400_and_writes_nothing(
+        client, admin_headers, make_actor, db, segment, blank):
+    account, _ = make_actor(segment)
+    pid = account.actor_id
+    before = _fresh(db, MODELS[segment], pid).first_name
+    resp = client.patch(f"/admin/{segment}/{pid}", headers=admin_headers,
+                        json={"first_name": blank, "phone": "99112233"})
+    assert resp.status_code == 400
+    assert resp.get_json()["error"] == "first_name_required"
+    db.session.rollback()
+    row = _fresh(db, MODELS[segment], pid)
+    assert row.first_name == before
+    assert row.phone != "99112233"
+
+
+@pytest.mark.parametrize("segment", SEGMENTS)
+def test_update_first_name_is_trimmed(client, admin_headers, make_actor, db, segment):
+    account, _ = make_actor(segment)
+    resp = client.patch(f"/admin/{segment}/{account.actor_id}", headers=admin_headers,
+                        json={"first_name": "  Bold  "})
+    assert resp.status_code == 200
+    assert resp.get_json()["profile"]["first_name"] == "Bold"
+    assert _fresh(db, MODELS[segment], account.actor_id).first_name == "Bold"
+
+
 def test_update_student_bad_birth_date(client, admin_headers, make_student):
     account, _ = make_student()
     resp = client.patch(f"/admin/students/{account.actor_id}", headers=admin_headers,

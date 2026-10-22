@@ -6,10 +6,6 @@ on:
   pull_request:
   workflow_dispatch:
 
-concurrency:
-  group: deploy-production
-  cancel-in-progress: false
-
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -70,6 +66,10 @@ jobs:
     needs: [lint, test]
     # Only deploy on push to main / manual run — never on pull requests.
     if: github.event_name != 'pull_request'
+    # Serialise production deploys only; PR lint/test runs never queue behind them.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

@@ -61,6 +61,9 @@ def test_create_teacher_sets_bio(client, admin_headers, db):
     ({"email": "a@b.c", "first_name": "A"}, "email_and_password_required"),
     ({"password": "Secret123!", "first_name": "A"}, "email_and_password_required"),
     ({"email": "a@b.c", "password": "Secret123!"}, "first_name_required"),
+    ({"email": "a@b.c", "password": "Secret123!", "first_name": "   "}, "first_name_required"),
+    ({"email": "a@b.c", "password": "Secret123!", "first_name": None}, "first_name_required"),
+    ({"email": "a@b.c", "password": "Secret123!", "first_name": 7}, "first_name_required"),
     ({"email": "   ", "password": "Secret123!", "first_name": "A"}, "email_required"),
 ])
 def test_create_validates_required_fields(client, admin_headers, segment, payload, error):

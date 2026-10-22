@@ -68,6 +68,11 @@ def _extract_profile(cfg, data):
                 value = date.fromisoformat(value)
             except (ValueError, TypeError):
                 raise ServiceError(400, "invalid_date", field=field) from None
+        if field == "first_name":
+            # Every client renders the name, so it may never be blank.
+            value = value.strip() if isinstance(value, str) else ""
+            if not value:
+                raise ServiceError(400, "first_name_required")
         if field == "ui_mode":
             # Empty clears the override, so birth date / course level decide again.
             value = value or None
