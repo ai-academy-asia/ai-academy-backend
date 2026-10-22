@@ -25,6 +25,7 @@ _WRITABLE = {
     "target_audience", "age_min", "age_max",
     "duration_weeks", "duration_label", "format", "sort_order",
     "price_amount", "currency", "discount_percent",
+    "installment_count", "installment_interval_months",
     "banner_image_url", "icon",
     "description_mn", "description_en", "prerequisites_mn", "prerequisites_en",
     "capacity",
@@ -67,6 +68,12 @@ def _validate(course):
         raise ServiceError(400, "invalid_status")
     if course.level is not None and course.level not in COURSE_LEVELS:
         raise ServiceError(400, "invalid_level")
+    for field, top in (("installment_count", 24), ("installment_interval_months", 12)):
+        value = getattr(course, field)
+        if value is None:
+            setattr(course, field, 1)
+        elif not isinstance(value, int) or isinstance(value, bool) or not 1 <= value <= top:
+            raise ServiceError(400, f"invalid_{field}", min=1, max=top)
 
 
 def _commit_or_slug_conflict():

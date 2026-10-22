@@ -2,7 +2,7 @@
 from decimal import Decimal
 
 import payments_student_helpers
-from payments_student_helpers import _create, _rows
+from payments_student_helpers import _create, _mine, _rows
 
 from app.payments import PaymentGatewayError
 
@@ -17,7 +17,7 @@ student = payments_student_helpers.student
 def test_status_poll_while_unpaid(client, db, gateways, student):
     from app.models import Payment
 
-    inv = _create(client, student[1]).get_json()
+    inv = _mine(client, student).get_json()
     resp = client.get(f"/payments/invoices/{inv['id']}/status", headers=student[1])
     assert resp.status_code == 200
     data = resp.get_json()
@@ -63,7 +63,7 @@ def test_status_poll_settles_paid_invoice(client, db, gateways, student, enroll,
 
 
 def test_status_poll_gateway_failure(client, gateways, student):
-    inv = _create(client, student[1]).get_json()
+    inv = _mine(client, student).get_json()
     gateways["qpay"].fail = PaymentGatewayError("qpay", "gateway_timeout", retriable=True)
     resp = client.get(f"/payments/invoices/{inv['id']}/status", headers=student[1])
     assert resp.status_code == 503
@@ -71,7 +71,7 @@ def test_status_poll_gateway_failure(client, gateways, student):
 
 
 def test_status_poll_other_student_forbidden(client, gateways, make_student):
-    inv = _create(client, make_student()[1]).get_json()
+    inv = _mine(client, make_student()).get_json()
     gateways["qpay"].paid = True
     resp = client.get(f"/payments/invoices/{inv['id']}/status", headers=make_student()[1])
     assert resp.status_code == 403
@@ -111,7 +111,7 @@ def test_callback_without_any_reference(client, gateways):
 def test_callback_while_unpaid_does_not_settle(client, db, gateways, student):
     from app.models import Payment
 
-    inv = _create(client, student[1]).get_json()
+    inv = _mine(client, student).get_json()
     resp = client.get(f"/payments/qpay/callback?ref={inv['sender_invoice_no']}")
     assert resp.status_code == 200
     assert resp.get_json() == {"ref": inv["sender_invoice_no"], "invoice_id": inv["id"],
@@ -146,7 +146,7 @@ def test_callback_settles_and_replay_is_idempotent(client, db, gateways, student
 def test_storepay_callback_finds_invoice_by_body_reference(client, db, gateways, student):
     from app.models import Payment
 
-    inv = _create(client, student[1], provider="storepay").get_json()
+    inv = _mine(client, student, provider="storepay").get_json()
     gateways["storepay"].paid = True
     resp = client.post("/payments/storepay/callback", json={"orderId": inv["sender_invoice_no"]})
     assert resp.status_code == 200
@@ -155,7 +155,7 @@ def test_storepay_callback_finds_invoice_by_body_reference(client, db, gateways,
 
 
 def test_callback_finds_invoice_by_provider_invoice_id(client, gateways, student):
-    inv = _create(client, student[1], provider="storepay").get_json()
+    inv = _mine(client, student, provider="storepay").get_json()
     gateways["storepay"].paid = True
     resp = client.post("/payments/storepay/callback",
                        json={"loanId": inv["provider_invoice_id"]})
@@ -166,7 +166,7 @@ def test_callback_finds_invoice_by_provider_invoice_id(client, gateways, student
 def test_callback_on_another_providers_path_is_rejected(client, db, gateways, student):
     from app.models import Payment
 
-    inv = _create(client, student[1]).get_json()
+    inv = _mine(client, student).get_json()
     gateways["qpay"].paid = gateways["storepay"].paid = True
     resp = client.post(f"/payments/storepay/callback?ref={inv['sender_invoice_no']}")
     assert resp.status_code == 404
@@ -177,7 +177,7 @@ def test_callback_on_another_providers_path_is_rejected(client, db, gateways, st
 def test_callback_gateway_failure(client, db, gateways, student):
     from app.models import Payment
 
-    inv = _create(client, student[1]).get_json()
+    inv = _mine(client, student).get_json()
     gateways["qpay"].fail = PaymentGatewayError("qpay", "gateway_http_401")
     resp = client.get(f"/payments/qpay/callback?ref={inv['sender_invoice_no']}")
     assert resp.status_code == 502

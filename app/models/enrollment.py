@@ -22,6 +22,10 @@ class Enrollment(db.Model):
     # ERD parity: denormalized course, progress + provenance.
     course_id = db.Column(db.Integer, db.ForeignKey("courses.id", ondelete="SET NULL"), index=True)
     progress_pct = db.Column(db.Integer, default=0)
+    # The course price after discount, frozen at enrolment: the ledger, the plan and
+    # the contract bill this, so a later price edit never moves what a student owes.
+    price_amount = db.Column(db.Numeric(12, 2))
+    currency = db.Column(db.String(3))
     status = db.Column(db.String(20), nullable=False, default="active")
     created_via = db.Column(db.String(20))          # web | app | admin
     created_by_admin_id = db.Column(db.Integer)     # staff id when staff-enrolled
@@ -42,6 +46,8 @@ class Enrollment(db.Model):
             "student_id": self.student_id,
             "course_id": self.course_id,
             "progress_pct": self.progress_pct,
+            "price_amount": float(self.price_amount) if self.price_amount is not None else None,
+            "currency": self.currency,
             "status": self.status,
             "created_via": self.created_via,
             "created_by_admin_id": self.created_by_admin_id,

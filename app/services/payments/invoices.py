@@ -1,6 +1,8 @@
 """Raising a payment request through a gateway and persisting it as an Invoice."""
 from __future__ import annotations
 
+from decimal import Decimal
+
 # Look the provider up through the gateway package at call time (not a name
 # imported here), so a test that patches ``app.payments.get_provider`` reaches
 # every submodule of this package.
@@ -22,6 +24,7 @@ from app.payments import (
 
 from ..errors import ServiceError
 from .helpers import _as_service_error, _gen_reference, _to_amount
+from .ledger import recompute_ledger
 
 
 # --------------------------------------------------------------- create invoice
@@ -47,13 +50,13 @@ def create_invoice(
     # themselves; validating it twice here is what broke demo mode.
     if provider not in SUPPORTED_PROVIDERS + INTERNAL_PROVIDERS:
         raise ServiceError(400, "unsupported_provider", supported=list(SUPPORTED_PROVIDERS))
-    amount = _to_amount(amount)
     customer = customer or {}
 
     # Resolve/validate the money-domain links and enrich the customer payload.
     enrollment_id, student_id, installment_id = _resolve_links(
         enrollment_id, student_id, installment_id
     )
+    amount = _amount_owed(amount, enrollment_id, installment_id)
     if student_id and not customer:
         customer = _customer_from_student(student_id)
 
@@ -116,6 +119,35 @@ def _resolve_links(enrollment_id, student_id, installment_id):
     if student_id and db.session.get(Student, student_id) is None:
         raise ServiceError(404, "student_not_found")
     return enrollment_id, student_id, installment_id
+
+
+def _amount_owed(amount, enrollment_id, installment_id) -> Decimal:
+    """The server decides what an enrollment's invoice is for.
+
+    An installment bills exactly its amount (the client's figure may only agree).
+    Otherwise it bills any part of the outstanding balance, defaulting to all of
+    it. Only an invoice tied to no enrollment takes the caller's amount as is.
+    """
+    given = amount not in (None, "")
+    if installment_id:
+        inst = db.session.get(PaymentInstallment, installment_id)
+        if inst.status in ("paid", "waived"):
+            raise ServiceError(409, "installment_settled", installment_status=inst.status)
+        due = _to_amount(inst.amount)
+        if given and _to_amount(amount) != due:
+            raise ServiceError(400, "amount_mismatch", expected=float(due))
+        return due
+    if not enrollment_id:
+        return _to_amount(amount)
+    balance = recompute_ledger(enrollment_id).balance or Decimal(0)
+    if balance <= 0:
+        raise ServiceError(409, "nothing_due")
+    if not given:
+        return _to_amount(balance)
+    value = _to_amount(amount)
+    if value > balance:
+        raise ServiceError(409, "amount_exceeds_balance", balance=float(balance))
+    return value
 
 
 def _customer_from_student(student_id) -> dict:

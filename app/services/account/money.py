@@ -21,6 +21,7 @@ from app.timeutil import iso
 
 from ..errors import ServiceError
 from ..params import parse_id, parse_limit
+from ..payments.ledger import price_for
 
 
 def _money(value) -> float:
@@ -52,9 +53,10 @@ def _enrollment_row(enr: Enrollment, ledger, installments) -> dict:
             "id": cohort.id, "name": cohort.name,
             "start_date": iso(cohort.start_date), "end_date": iso(cohort.end_date),
         } if cohort is not None else None,
-        "total_due": _money(ledger.total_due if ledger else 0),
+        # No ledger yet means nothing was paid against the frozen price.
+        "total_due": _money(ledger.total_due if ledger else price_for(enr)),
         "total_paid": _money(ledger.total_paid if ledger else 0),
-        "balance": _money(ledger.balance if ledger else 0),
+        "balance": _money(ledger.balance if ledger else price_for(enr)),
         "currency": ledger.currency if ledger else (course.currency if course else "MNT"),
         "next_due_date": iso(ledger.next_due_date) if ledger else None,
         "installments": [_installment(i) for i in installments],

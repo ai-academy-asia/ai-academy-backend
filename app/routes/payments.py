@@ -56,6 +56,10 @@ def create_my_invoice():
         raise ServiceError(400, "unsupported_provider", supported=list(SUPPORTED_PROVIDERS))
     enrollment_id = data.get("enrollment_id")
     installment_id = data.get("installment_id")
+    # What is owed is worked out per enrollment, so a student pays for one —
+    # there is no free-amount invoice to a student's name.
+    if enrollment_id is None and installment_id is None:
+        raise ServiceError(400, "enrollment_required")
 
     # A student may only pay for their own enrollment — named directly, or
     # implied by the installment (which carries its enrollment with it).

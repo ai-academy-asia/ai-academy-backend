@@ -48,6 +48,30 @@ def _create(client, headers, **fields):
     return client.post("/payments/invoices", json=payload, headers=headers)
 
 
+def _mine(client, student, **fields):
+    """A student invoice against that student's own enrollment (made if missing) —
+    a student can only pay for an enrollment, so every invoice names one."""
+    from app.extensions import db
+    from app.models import Cohort, Course, Enrollment
+
+    account, headers = student
+    enr = Enrollment.query.filter_by(student_id=account.actor_id).first()
+    if enr is None:
+        course = Course(slug=f"pay-{account.actor_id}", title_mn="Төлбөр", status="open",
+                        price_amount=1_000_000, currency="MNT")
+        db.session.add(course)
+        db.session.flush()
+        cohort = Cohort(course_id=course.id, name="Pay cohort", status="open",
+                        start_date=date(2026, 10, 1), capacity=10)
+        db.session.add(cohort)
+        db.session.flush()
+        enr = Enrollment(cohort_id=cohort.id, student_id=account.actor_id,
+                         course_id=course.id, status="active")
+        db.session.add(enr)
+        db.session.commit()
+    return _create(client, headers, enrollment_id=enr.id, **fields)
+
+
 def _rows(db, model, **filters):
     db.session.expire_all()
     return model.query.filter_by(**filters).all()

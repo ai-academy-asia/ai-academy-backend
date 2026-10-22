@@ -21,6 +21,7 @@ from app.storage import S3StorageError, read_template
 from app.timeutil import utcnow
 
 from ..errors import ServiceError
+from ..payments.ledger import price_for
 from . import fields
 from .pdf import TemplateError, fill_contract
 
@@ -98,8 +99,8 @@ def finance(contract: StudentContract) -> dict:
         ledger = StudentLedger.query.filter_by(enrollment_id=contract.enrollment_id).first()
         if ledger is not None:
             due, paid, balance = ledger.total_due, ledger.total_paid, ledger.balance
-        else:
-            due = course.final_price_amount or Decimal(0)
+        else:  # the price frozen at enrolment, not the course's current one
+            due = price_for(contract.enrollment) if contract.enrollment else Decimal(0)
             paid, balance = Decimal(0), due
         discount = _discount(course, due)
     return {

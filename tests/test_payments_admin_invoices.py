@@ -67,7 +67,7 @@ def test_create_invoice_derives_links_from_installment(client, gateways, finance
                                                        installment):
     enr = enroll()
     inst = installment(enr)
-    data = _create(client, finance, installment_id=inst.id).get_json()
+    data = _create(client, finance, installment_id=inst.id, amount=None).get_json()
     assert data["installment_id"] == inst.id
     assert data["enrollment_id"] == enr.id
     assert data["student_id"] == enr.student_id

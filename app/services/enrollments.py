@@ -5,6 +5,7 @@ from app.extensions import db
 from app.models import Enrollment, Student
 
 from .errors import ServiceError
+from .payments.plans import on_enrolled
 
 
 def enroll(cohort, student_id, *, require_open, created_via, admin_id=None) -> Enrollment:
@@ -25,6 +26,7 @@ def enroll(cohort, student_id, *, require_open, created_via, admin_id=None) -> E
     if existing is not None:
         existing.status = "active"  # re-activate a cancelled enrollment
         db.session.commit()
+        on_enrolled(existing)  # keeps its frozen price and plan if it has them
         return existing
 
     enrollment = Enrollment(
@@ -37,6 +39,7 @@ def enroll(cohort, student_id, *, require_open, created_via, admin_id=None) -> E
     except IntegrityError:
         db.session.rollback()
         raise ServiceError(409, "already_enrolled") from None
+    on_enrolled(enrollment)
     return enrollment
 
 

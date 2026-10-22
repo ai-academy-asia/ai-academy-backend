@@ -9,6 +9,7 @@
 - admin   : back-office CRUD (students, teachers, classrooms, cohorts,
             course content, schedules)
 - payments: gateway callbacks + student self-pay + finance/refunds/ledger
+- installments: finance edits to an enrollment's installment plan
 - ebarimt : finance's eBarimt receipt back-office (/admin/ebarimt/*)
 
 Mobile learning surface (docs/course_learning_api_contract_v1.md), each with a
@@ -36,6 +37,7 @@ def register_blueprints(app):
     from .contracts import bp as contracts_bp
     from .ebarimt import bp as ebarimt_bp
     from .health import bp as health_bp
+    from .installments import bp as installments_bp
     from .learning import bp as learning_bp
     from .learning_admin import bp as learning_admin_bp
     from .notifications import bp as notifications_bp
@@ -48,7 +50,7 @@ def register_blueprints(app):
     from .teacher import bp as teacher_bp
 
     for blueprint in (health_bp, auth_bp, public_bp, student_bp, teacher_bp,
-                      admin_bp, payments_bp, ebarimt_bp,
+                      admin_bp, payments_bp, installments_bp, ebarimt_bp,
                       learning_bp, learning_admin_bp, assignments_bp, assignments_staff_bp,
                       quizzes_bp, quizzes_staff_bp, account_bp, certificates_bp, contracts_bp,
                       attendance_bp, notifications_bp, schedule_changes_bp):

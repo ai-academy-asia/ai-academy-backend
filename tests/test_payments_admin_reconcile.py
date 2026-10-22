@@ -124,7 +124,8 @@ def test_recompute_creates_ledger_from_installments(client, finance, enroll, ins
     resp = client.post(f"/admin/ledger/{enr.id}/recompute", headers=finance)
     assert resp.status_code == 200
     data = resp.get_json()
-    assert (data["total_due"], data["total_paid"], data["balance"]) == (400000.0, 0.0, 400000.0)
+    # A waived installment is forgiven: it no longer counts toward what is due.
+    assert (data["total_due"], data["total_paid"], data["balance"]) == (300000.0, 0.0, 300000.0)
     assert data["next_due_date"] == "2026-11-01"
     assert client.get(f"/admin/ledger/{enr.id}", headers=finance).get_json() == data
 
@@ -147,7 +148,9 @@ def test_recompute_without_plan_nets_refunds(client, db, gateways, finance, enro
     db.session.commit()
 
     data = client.post(f"/admin/ledger/{enr.id}/recompute", headers=finance).get_json()
-    assert (data["total_due"], data["total_paid"], data["balance"]) == (200000.0, 200000.0, 0.0)
+    # No plan: the course price is due, not whatever happened to be paid.
+    assert (data["total_due"], data["total_paid"], data["balance"]) == (
+        1000000.0, 200000.0, 800000.0)
     assert data["next_due_date"] is None
 
 

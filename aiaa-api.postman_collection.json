@@ -57,6 +57,10 @@
       "value": "1"
     },
     {
+      "key": "installment_id",
+      "value": ""
+    },
+    {
       "key": "invoice_id",
       "value": ""
     },
@@ -4990,6 +4994,161 @@
                     "{{enrollment_id}}",
                     "recompute"
                   ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Installment plans (ledger:read / installment:manage)",
+          "description": "Хуваарьт төлбөр. Элсэлтээр курсийн дүрмээр (installment_count, installment_interval_months) автоматаар үүснэ; санхүү төлөгдөөгүй хэсгийг нэмж, засаж, устгаж, чөлөөлнө. Өөрчлөлт бүр ledger-ийг шинэчилнэ.",
+          "item": [
+            {
+              "name": "Get plan",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/admin/enrollments/{{enrollment_id}}/installments",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "enrollments",
+                    "{{enrollment_id}}",
+                    "installments"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Add installment",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/enrollments/{{enrollment_id}}/installments",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "enrollments",
+                    "{{enrollment_id}}",
+                    "installments"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": 500000,\n  \"due_date\": \"2026-11-01\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Create default plan (course rule)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/enrollments/{{enrollment_id}}/installments/default",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "enrollments",
+                    "{{enrollment_id}}",
+                    "installments",
+                    "default"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}"
+                }
+              }
+            },
+            {
+              "name": "Edit installment",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/installments/{{installment_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "installments",
+                    "{{installment_id}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": 450000,\n  \"due_date\": \"2026-11-15\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Delete installment",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/admin/installments/{{installment_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "installments",
+                    "{{installment_id}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Waive installment",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/installments/{{installment_id}}/waive",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "installments",
+                    "{{installment_id}}",
+                    "waive"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}"
                 }
               }
             }

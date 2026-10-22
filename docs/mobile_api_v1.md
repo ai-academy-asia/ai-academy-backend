@@ -112,10 +112,21 @@ One contract per enrollment, created automatically when the course has a PDF con
 |---|---|---|---|
 | GET | `/me/ledger` | S | per enrollment: due/paid/balance + installments |
 | GET | `/me/invoices` | S | history, `?status=&limit=` |
-| POST | `/payments/invoices` | S | pay an enrollment / installment (`qpay`/`storepay`/`golomt`) |
+| POST | `/payments/invoices` | S | pay an enrollment / installment (`qpay`/`storepay`/`golomt`); `enrollment_id` or `installment_id` required. Amount is server-decided: an installment bills exactly its amount (`amount` optional, else must match → 400 `amount_mismatch`); otherwise any part of the balance, default all of it (409 `amount_exceeds_balance` / `nothing_due` / `installment_settled`) |
 | GET | `/payments/invoices/{id}` | S | QR, bank deeplinks |
 | GET | `/payments/invoices/{id}/status` | S | poll until `paid` |
 | GET | `/me/receipts`, `/me/receipts/{id}` | S | eBarimt receipts (`is_temp_mode` = not yet filed) |
+| GET | `/admin/enrollments/{id}/installments` | staff:ledger:read | plan + ledger + frozen `price_amount` |
+| POST | `/admin/enrollments/{id}/installments` | staff:installment:manage | add `{amount, due_date}` |
+| POST | `/admin/enrollments/{id}/installments/default` | staff:installment:manage | course-rule plan for an older enrollment (409 `plan_exists`) |
+| PATCH / DELETE | `/admin/installments/{id}` | staff:installment:manage | unpaid only (409 `installment_settled`, `installment_has_invoices`) |
+| POST | `/admin/installments/{id}/waive` | staff:installment:manage | forgiven: drops out of `total_due` |
+
+What is owed: the course's discounted price is frozen on the enrollment at enrolment
+(`price_amount`) and a plan is laid out from the course rule (`installment_count` equal
+payments, first on the cohort start date, then every `installment_interval_months`).
+`total_due` = Σ non-waived installments, else the frozen price — a later course price
+edit never changes it.
 
 ## 8. Attendance & class sessions
 

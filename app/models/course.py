@@ -51,6 +51,11 @@ class Course(db.Model):
     price_amount = db.Column(db.Numeric(12, 2))
     currency = db.Column(db.String(3), default="MNT")
     discount_percent = db.Column(db.Integer, default=0)
+    # Installment rule: an enrolment is billed in this many equal payments, the
+    # first on the cohort's start date and then every N months (1 = pay in full).
+    installment_count = db.Column(db.Integer, nullable=False, default=1, server_default="1")
+    installment_interval_months = db.Column(
+        db.Integer, nullable=False, default=1, server_default="1")
 
     banner_image_url = db.Column(db.String(500))
     icon = db.Column(db.String(120))
@@ -148,6 +153,8 @@ class Course(db.Model):
                 "description": {"mn": self.description_mn, "en": self.description_en},
                 "prerequisites": {"mn": self.prerequisites_mn, "en": self.prerequisites_en},
                 "capacity": self.capacity,
+                "installment_count": self.installment_count,
+                "installment_interval_months": self.installment_interval_months,
                 "has_exam": self.has_exam,
                 "has_final_project": self.has_final_project,
                 "final_project_type": self.final_project_type,

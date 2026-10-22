@@ -48,11 +48,11 @@ def test_ledger_lists_enrollments_with_installments(client, db, make_student, ma
     assert set(row["installments"][0]) == {"id", "seq", "due_date", "amount", "status", "paid_at"}
 
 
-def test_ledger_without_ledger_row_reports_zeros(client, make_student, enroll):
+def test_ledger_without_ledger_row_owes_the_price(client, make_student, enroll):
     account, headers = make_student()
     enroll(account.actor_id)
     [row] = client.get("/me/ledger", headers=headers).get_json()["enrollments"]
-    assert (row["total_due"], row["total_paid"], row["balance"]) == (0, 0, 0)
+    assert (row["total_due"], row["total_paid"], row["balance"]) == (1000000, 0, 1000000)
     assert row["next_due_date"] is None and row["installments"] == []
 
 

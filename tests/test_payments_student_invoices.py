@@ -3,7 +3,7 @@ from decimal import Decimal
 
 import payments_student_helpers
 import pytest
-from payments_student_helpers import _create, _rows
+from payments_student_helpers import _create, _mine, _rows
 
 from app.payments import PaymentGatewayError
 
@@ -39,21 +39,23 @@ def test_student_creates_invoice_for_own_enrollment(client, db, gateways, studen
     assert req.customer["name"] == "Bat"
 
 
-def test_student_invoice_without_enrollment_is_tied_to_self(client, gateways, student):
-    account, headers = student
-    resp = _create(client, headers)
-    assert resp.status_code == 201
-    assert resp.get_json()["student_id"] == account.actor_id
-    assert resp.get_json()["enrollment_id"] is None
+def test_student_invoice_must_name_an_enrollment(client, db, gateways, student):
+    from app.models import Invoice
+
+    resp = _create(client, student[1])
+    assert resp.status_code == 400
+    assert resp.get_json()["error"] == "enrollment_required"
+    assert gateways["qpay"].created == [] and _rows(db, Invoice) == []
 
 
 def test_student_invoice_for_installment(client, gateways, student, enroll, installment):
     account, headers = student
     enr = enroll(account.actor_id)
     inst = installment(enr)
-    resp = _create(client, headers, enrollment_id=enr.id, installment_id=inst.id)
+    resp = _create(client, headers, enrollment_id=enr.id, installment_id=inst.id, amount=None)
     assert resp.status_code == 201
     assert resp.get_json()["installment_id"] == inst.id
+    assert resp.get_json()["amount"] == 500000.0  # the installment's, not the client's
 
 
 def test_create_invoice_requires_auth(client, gateways):
@@ -74,7 +76,7 @@ def test_create_invoice_is_student_only(client, gateways, make_staff, make_teach
 def test_create_invoice_rejects_unsupported_provider(client, db, gateways, student, provider):
     from app.models import Invoice
 
-    resp = _create(client, student[1], provider=provider)
+    resp = _mine(client, student, provider=provider)
     assert resp.status_code == 400
     data = resp.get_json()
     assert data["error"] == "unsupported_provider"
@@ -117,7 +119,6 @@ def test_create_invoice_unknown_installment(client, gateways, student):
 
 
 @pytest.mark.parametrize("amount, code", [
-    (None, "invalid_amount"),
     ("abc", "invalid_amount"),
     (0, "amount_must_be_positive"),
     (-100, "amount_must_be_positive"),
@@ -125,7 +126,7 @@ def test_create_invoice_unknown_installment(client, gateways, student):
 def test_create_invoice_validates_amount(client, db, gateways, student, amount, code):
     from app.models import Invoice
 
-    resp = _create(client, student[1], amount=amount)
+    resp = _mine(client, student, amount=amount)
     assert resp.status_code == 400
     assert resp.get_json()["error"] == code
     assert _rows(db, Invoice) == []
@@ -133,13 +134,13 @@ def test_create_invoice_validates_amount(client, db, gateways, student, amount, 
 
 @pytest.mark.parametrize("amount", ["NaN", "Infinity", "-Infinity"])
 def test_create_invoice_rejects_non_finite_amount(client, gateways, student, amount):
-    resp = _create(client, student[1], amount=amount)
+    resp = _mine(client, student, amount=amount)
     assert resp.status_code == 400
     assert resp.get_json()["error"] == "invalid_amount"
 
 
 def test_create_invoice_rounds_amount_to_cents(client, gateways, student):
-    resp = _create(client, student[1], amount="1000.456")
+    resp = _mine(client, student, amount="1000.456")
     assert resp.status_code == 201
     assert resp.get_json()["amount"] == 1000.46
 
@@ -149,7 +150,7 @@ def test_create_invoice_gateway_failure(client, db, gateways, student, retriable
     from app.models import Invoice
 
     gateways["qpay"].fail = PaymentGatewayError("qpay", "gateway_http_500", retriable=retriable)
-    resp = _create(client, student[1])
+    resp = _mine(client, student)
     assert resp.status_code == status
     assert resp.get_json()["error"] == "gateway_gateway_http_500"
     assert resp.get_json()["provider"] == "qpay"
@@ -158,7 +159,7 @@ def test_create_invoice_gateway_failure(client, db, gateways, student, retriable
 
 def test_create_invoice_gateway_not_configured(client, gateways, student):
     gateways["storepay"].fail = PaymentGatewayError("storepay", "not_configured")
-    resp = _create(client, student[1], provider="storepay")
+    resp = _mine(client, student, provider="storepay")
     assert resp.status_code == 501
     assert resp.get_json()["error"] == "gateway_not_configured"
 
@@ -166,7 +167,7 @@ def test_create_invoice_gateway_not_configured(client, gateways, student):
 # ======================================================= GET /payments/invoices/<id>
 def test_student_reads_own_invoice(client, gateways, student):
     headers = student[1]
-    inv = _create(client, headers).get_json()
+    inv = _mine(client, student).get_json()
     resp = client.get(f"/payments/invoices/{inv['id']}", headers=headers)
     assert resp.status_code == 200
     assert resp.get_json()["id"] == inv["id"]
@@ -174,7 +175,7 @@ def test_student_reads_own_invoice(client, gateways, student):
 
 
 def test_student_cannot_read_other_students_invoice(client, gateways, make_student):
-    inv = _create(client, make_student()[1]).get_json()
+    inv = _mine(client, make_student()).get_json()
     resp = client.get(f"/payments/invoices/{inv['id']}", headers=make_student()[1])
     assert resp.status_code == 403
     assert resp.get_json()["error"] == "forbidden"
@@ -187,6 +188,6 @@ def test_read_invoice_not_found(client, student):
 
 
 def test_read_invoice_requires_student(client, gateways, student, admin_headers):
-    inv = _create(client, student[1]).get_json()
+    inv = _mine(client, student).get_json()
     assert client.get(f"/payments/invoices/{inv['id']}").status_code == 401
     assert client.get(f"/payments/invoices/{inv['id']}", headers=admin_headers).status_code == 403
