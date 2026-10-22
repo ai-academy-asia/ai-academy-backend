@@ -16,12 +16,12 @@ staff token with that permission (super_admin has all) · `—` no auth.
 
 | Method | Path | Who | Notes |
 |---|---|---|---|
-| POST | `/auth/login` | — | access + refresh token; `must_change_password`; `user_type` |
+| POST | `/auth/login` | — | access + refresh token; `must_change_password`; `user_type`. While `must_change_password` is true every signed-in route outside `/auth/*` answers 403 `password_change_required` |
 | POST | `/auth/refresh` | — | rotates the refresh token |
 | POST | `/auth/logout` | — | revokes this device's refresh token |
 | POST | `/auth/logout-all` | any | revokes every session |
 | GET | `/auth/me` | any | account + profile + `user_type` |
-| POST | `/auth/change-password` | any | |
+| POST | `/auth/change-password` | any | other devices signed out; **this** device gets a fresh token pair (same body as login) — store it |
 | POST | `/auth/forgot-password` | — | always `200 {"status":"ok"}`; emails a 6-digit code (15 min) |
 | POST | `/auth/reset-password` | — | `{email, code, new_password}`; any failure = `400 invalid_code`; revokes all sessions |
 | PATCH | `/me/profile` | S, T | student: first/last name, phone; teacher: + bio |

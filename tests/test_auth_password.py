@@ -12,22 +12,31 @@ student = auth_helpers.student
 
 
 # ----------------------------------------------------------------- change-password
-def test_change_password_updates_hash_and_revokes_sessions(client, db, make_student):
+def test_change_password_signs_out_others_and_keeps_this_device(client, db, make_student):
     account, headers = make_student(email="new@student.test")
     account.must_change_password = True
     db.session.commit()
-    _login(client, "new@student.test")
+    other_device = _login(client, "new@student.test").get_json()["refresh_token"]
 
     resp = client.post("/auth/change-password", headers=headers,
                        json={"current_password": PASSWORD, "new_password": "BrandNew123"})
     assert resp.status_code == 200
-    assert resp.get_json() == {"status": "ok"}
+    body = resp.get_json()
+    assert body["status"] == "ok" and body["must_change_password"] is False
+    assert body["access_token"] and body["refresh_token"] and body["actor"]["id"] == account.id
 
     db.session.expire_all()
     fresh = db.session.get(AuthAccount, account.id)
     assert fresh.must_change_password is False
     assert fresh.check_password("BrandNew123")
-    assert RefreshToken.query.filter_by(revoked_at=None).count() == 0
+    assert RefreshToken.query.filter_by(revoked_at=None).count() == 1  # this device only
+    assert client.post("/auth/refresh",
+                       json={"refresh_token": other_device}).status_code == 401
+    # The new pair outlives the access token: refreshing keeps the device signed in.
+    again = client.post("/auth/refresh", json={"refresh_token": body["refresh_token"]})
+    assert again.status_code == 200
+    me = client.get("/auth/me", headers={"Authorization": f"Bearer {body['access_token']}"})
+    assert me.status_code == 200
     assert _login(client, "new@student.test").status_code == 401
     assert _login(client, "new@student.test", "BrandNew123").status_code == 200
 

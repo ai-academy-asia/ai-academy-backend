@@ -116,8 +116,11 @@ def change_password():
 
     user.set_password(new_password)
     user.must_change_password = False
-    # Force re-login everywhere after a password change (revoke all refresh
-    # tokens). The current access token stays valid until it expires (short TTL).
+    # Sign every other device out (revoke all refresh tokens), but keep this one:
+    # it gets a fresh pair, so the forced first-login change does not end in a
+    # silent sign-out an hour later. Other devices' access tokens lapse within
+    # their short TTL.
     revoke_all_for_account(user.id)
+    refresh_raw, refresh_ttl = issue_refresh_token(user)
     db.session.commit()
-    return jsonify(status="ok")
+    return jsonify(status="ok", **_token_response(user, refresh_raw, refresh_ttl))

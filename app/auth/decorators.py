@@ -1,7 +1,7 @@
 """Route guards that enforce what the middleware merely resolved."""
 from functools import wraps
 
-from flask import g, jsonify
+from flask import g, jsonify, request
 
 from .permissions import has_permission
 
@@ -11,13 +11,30 @@ def _unauthorized():
     return jsonify(error=code), 401
 
 
+def _password_change_pending(user) -> bool:
+    """A provisioned or reset account may use /auth/* (change its password, read
+    /auth/me, log out) and nothing else until the password is changed — the
+    client's own gate is not a control."""
+    return bool(user.must_change_password) and not request.path.startswith("/auth/")
+
+
+def _guard(user):
+    """The response that stops this user, or ``None`` to let the request through."""
+    if user is None:
+        return _unauthorized()
+    if _password_change_pending(user):
+        return jsonify(error="password_change_required"), 403
+    return None
+
+
 def login_required(fn):
     """Require any authenticated actor."""
 
     @wraps(fn)
     def wrapper(*args, **kwargs):
-        if getattr(g, "current_user", None) is None:
-            return _unauthorized()
+        stop = _guard(getattr(g, "current_user", None))
+        if stop is not None:
+            return stop
         return fn(*args, **kwargs)
 
     return wrapper
@@ -33,8 +50,9 @@ def roles_required(*roles):
         @wraps(fn)
         def wrapper(*args, **kwargs):
             user = getattr(g, "current_user", None)
-            if user is None:
-                return _unauthorized()
+            stop = _guard(user)
+            if stop is not None:
+                return stop
             if user.role not in roles:
                 return jsonify(error="forbidden"), 403
             return fn(*args, **kwargs)
@@ -56,8 +74,9 @@ def require_permission(*permissions):
         @wraps(fn)
         def wrapper(*args, **kwargs):
             user = getattr(g, "current_user", None)
-            if user is None:
-                return _unauthorized()
+            stop = _guard(user)
+            if stop is not None:
+                return stop
             if not all(has_permission(user.role, perm) for perm in permissions):
                 return jsonify(error="forbidden"), 403
             return fn(*args, **kwargs)
@@ -77,8 +96,9 @@ def actor_required(*actor_types):
         @wraps(fn)
         def wrapper(*args, **kwargs):
             user = getattr(g, "current_user", None)
-            if user is None:
-                return _unauthorized()
+            stop = _guard(user)
+            if stop is not None:
+                return stop
             if user.actor_type not in actor_types:
                 return jsonify(error="forbidden"), 403
             return fn(*args, **kwargs)
