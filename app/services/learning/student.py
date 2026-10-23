@@ -5,7 +5,6 @@ from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db
 from app.models import LessonMaterial, LessonNote, LessonProgress, Student
-from app.timeutil import utcnow
 
 from ..access import (
     course_by_slug,
@@ -15,7 +14,7 @@ from ..access import (
     topic_for_student,
 )
 from ..errors import ServiceError
-from . import path
+from . import completion, path
 from .shapes import loc, material_dict, module_ref, note_dict
 
 NOTE_MAX_LENGTH = 5000
@@ -79,6 +78,7 @@ def module_lessons(student_id, module_id) -> dict:
     lessons = path.ordered_lessons(topic.id)
     order = path.position(path.ordered_topics(topic.course_id), topic.id)
     classes = path.lesson_sessions(enrollment.cohort_id, [lesson.id for lesson in lessons])
+    gated = completion.course_gates(topic.course_id, enrollment)
     return {
         "module": module_ref(topic, order),
         "lessons": [{
@@ -88,7 +88,8 @@ def module_lessons(student_id, module_id) -> dict:
             "type": lesson.type,
             "duration_seconds": lesson.duration_seconds,
             "completed": lesson.id in done,
-            "locked": locked or path.is_locked(classes.get(lesson.id)),
+            "locked": (locked or path.is_locked(classes.get(lesson.id))
+                       or lesson.id in gated),
             # The lesson's own class, when it has one: when, and how the student did.
             "schedule": path.schedule_dict(classes.get(lesson.id)),
             "attendance": path.lesson_attendance(student_id, classes.get(lesson.id)),
@@ -98,9 +99,10 @@ def module_lessons(student_id, module_id) -> dict:
 
 # ---------------------------------------------------------------- §2.3
 def _open_lesson(student_id, lesson_id):
-    """(lesson, enrollment) for a lesson whose module has opened, else 409."""
+    """(lesson, enrollment) for a lesson that has opened and is next in order, else 409."""
     lesson, enrollment = lesson_for_student(student_id, lesson_id)
     ensure_module_open(lesson.topic_id, enrollment.cohort_id, lesson.id)
+    completion.ensure_in_order(lesson, enrollment)
     return lesson, enrollment
 
 
@@ -149,31 +151,16 @@ def lesson_detail(student_id, lesson_id) -> dict:
 def complete_lesson(student_id, lesson_id) -> dict:
     """Idempotent: completing a completed lesson changes nothing."""
     lesson, enrollment = _open_lesson(student_id, lesson_id)
-    row = LessonProgress.query.filter_by(enrollment_id=enrollment.id, lesson_id=lesson.id).first()
-    if row is None:
-        row = LessonProgress(enrollment_id=enrollment.id, lesson_id=lesson.id)
-        db.session.add(row)
-    if not row.completed:
-        now = utcnow()
-        row.completed = True
-        row.completed_at = now
-        row.watched_at = row.watched_at or now
-    try:
-        db.session.flush()
-    except IntegrityError:
-        # A parallel request inserted it first — it is complete either way.
-        db.session.rollback()
+    completion.mark_completed(enrollment, lesson.id)
     progress = path.course_progress(enrollment)
-    enrollment.progress_pct = progress["percent"]
     db.session.commit()
     return {"completed": True, "progress": progress}
 
 
 # ---------------------------------------------------------------- §2.5
 def put_note(student_id, lesson_id, data) -> tuple:
-    """Upsert the student's note. Returns ``(note dict, created)``."""
-    lesson, enrollment = lesson_for_student(student_id, lesson_id)
-    ensure_module_open(lesson.topic_id, enrollment.cohort_id, lesson.id)
+    """Upsert the student's note, which completes the lesson. Returns ``(note dict, created)``."""
+    lesson, enrollment = _open_lesson(student_id, lesson_id)
     content = data.get("content")
     content = content.strip() if isinstance(content, str) else ""
     if not content:
@@ -189,12 +176,13 @@ def put_note(student_id, lesson_id, data) -> tuple:
     else:
         note.content = content
     try:
-        db.session.commit()
+        db.session.flush()
     except IntegrityError:
         # Two first saves raced; the loser becomes an update of the winner's row.
         db.session.rollback()
         note = _note(student_id, lesson.id)
         note.content = content
-        db.session.commit()
         created = False
+    completion.mark_completed(enrollment, lesson.id)
+    db.session.commit()
     return note_dict(note, db.session.get(Student, student_id)), created

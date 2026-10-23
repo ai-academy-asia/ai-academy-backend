@@ -188,6 +188,12 @@ FCM starts once `FCM_CREDENTIALS` is configured (`app/services/notifications/pus
 
 - **Module lock everywhere:** `409 lesson_locked` also comes from material download, quiz
   start and the assignment endpoints while the module's first class date is ahead.
+- **Lesson completion:** a lesson completes on `POST /complete`, on a saved note, or when the
+  student attends (present/late) the class session carrying its `lesson_id`. It stays
+  completed if the attendance is later corrected.
+- **Lesson order:** lesson detail, note and complete answer `409 lesson_out_of_order` while an
+  earlier lesson of the course is not completed — unless the lesson's own class day has come.
+  `/me/modules/{id}/lessons` shows such lessons as `locked: true`; `continue` is the next one.
 - **Quiz percent is weighted by question `point`** (staff-set, default 1); `correct` / `total`
   still count questions. Pass/fail and certificates use the weighted percent.
 - **Ungraded assignments** (`max_score: null`) can be reviewed with feedback only; `score` is

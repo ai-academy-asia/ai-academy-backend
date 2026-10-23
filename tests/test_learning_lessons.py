@@ -100,6 +100,7 @@ def test_lesson_detail(client, db, world, content, make_cohort):
 
 
 def test_lesson_detail_nulls(client, world, content):
+    client.post(f"/me/lessons/{content[2].id}/complete", headers=world.headers)
     data = client.get(f"/me/lessons/{content[3].id}", headers=world.headers).get_json()
     assert data["video"] is None
     assert data["summary"] is None

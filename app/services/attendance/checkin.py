@@ -26,6 +26,12 @@ def _hash(raw: str) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
+def _complete_lesson(session, student_id, status) -> None:
+    from app.services.learning import completion  # learning imports attendance's clock
+
+    completion.on_attended(session, student_id, status)
+
+
 # ----------------------------------------------------------------- teacher: QR
 def issue_qr(account, session_id) -> dict:
     session = session_for_teacher(account, session_id)
@@ -78,13 +84,15 @@ def check_in(student_id, token) -> tuple:
     )
     db.session.add(record)
     try:
-        db.session.commit()
+        db.session.flush()
     except IntegrityError:  # a double-tap raced us; the first scan stands
         db.session.rollback()
         existing = Attendance.query.filter_by(
             class_session_id=session.id, student_id=student_id
         ).first()
         return checkin_dict(existing), False
+    _complete_lesson(session, student_id, record.status)
+    db.session.commit()
     return checkin_dict(record), True
 
 
@@ -134,5 +142,6 @@ def mark(account, session_id, student_id, status) -> dict:
     record.status = status
     record.method = "manual"
     record.marked_by_teacher_id = account.actor_id if account.actor_type == "teacher" else None
+    _complete_lesson(session, student_id, status)
     db.session.commit()
     return {"student_id": student_id, **checkin_dict(record)}
