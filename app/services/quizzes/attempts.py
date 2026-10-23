@@ -78,7 +78,7 @@ def start_attempt(student_id, quiz_id) -> tuple:
     """(payload, created). Resumes the open attempt instead of opening a second one."""
     quiz = live_quiz(quiz_id)
     enrollment = enrollment_for_course(student_id, quiz.course_id)
-    ensure_module_open(_quiz_topic_id(quiz), enrollment.cohort_id)
+    ensure_module_open(_quiz_topic_id(quiz), enrollment.cohort_id, quiz.lesson_id)
 
     attempt = open_attempt_for(student_id, quiz.id)
     if attempt is not None:
@@ -112,7 +112,7 @@ def answer_question(student_id, attempt_id, data) -> dict:
     enrollment = enrollment_for_course(student_id, quiz.course_id)
     # Answering is new work, so a module locked again (its class moved later) stops
     # it; finishing and reading an attempt stay open — the work is already done.
-    ensure_module_open(_quiz_topic_id(quiz), enrollment.cohort_id)
+    ensure_module_open(_quiz_topic_id(quiz), enrollment.cohort_id, quiz.lesson_id)
 
     question = get_by_id(ExamQuestion, data.get("question_id"))
     if question is None or question.exam_id != quiz.id:

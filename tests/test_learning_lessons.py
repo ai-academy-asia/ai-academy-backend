@@ -31,9 +31,11 @@ def test_module_lessons(client, db, world, content):
         "module": {"id": m1.id, "order": 2, "title": {"mn": "Хоёр", "en": "Two"}},
         "lessons": [
             {"id": first.id, "order": 1, "title": {"mn": "Nesting", "en": None},
-             "type": "recording", "duration_seconds": 1455, "completed": True, "locked": False},
+             "type": "recording", "duration_seconds": 1455, "completed": True, "locked": False,
+             "schedule": None, "attendance": None},
             {"id": second.id, "order": 2, "title": {"mn": "Reading", "en": None},
-             "type": "reading", "duration_seconds": None, "completed": False, "locked": False},
+             "type": "reading", "duration_seconds": None, "completed": False, "locked": False,
+             "schedule": None, "attendance": None},
         ],
     }
 

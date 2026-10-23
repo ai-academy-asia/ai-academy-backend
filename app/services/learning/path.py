@@ -4,8 +4,10 @@ A module is dated by its cohort's earliest class session that covers it and stay
 locked until that day arrives in Ulaanbaatar (recordings open after the live
 class). Progress is lesson-based and per enrollment.
 """
+from __future__ import annotations
+
 from app.extensions import db
-from app.models import ClassSession, CourseLesson, CourseTopic, LessonProgress
+from app.models import Attendance, ClassSession, CourseLesson, CourseTopic, LessonProgress
 from app.timeutil import iso, local, utcnow
 
 
@@ -63,6 +65,35 @@ def first_sessions(cohort_id, topic_ids) -> dict:
     for row in rows:
         first.setdefault(row.topic_id, row)
     return first
+
+
+def lesson_sessions(cohort_id, lesson_ids) -> dict:
+    """``{lesson_id: earliest ClassSession}`` — the class each lesson is taught at."""
+    if not lesson_ids:
+        return {}
+    rows = (ClassSession.query
+            .filter(ClassSession.cohort_id == cohort_id, ClassSession.lesson_id.in_(lesson_ids))
+            .order_by(ClassSession.session_date, ClassSession.start_time.nullslast(),
+                      ClassSession.id)
+            .all())
+    first = {}
+    for row in rows:
+        first.setdefault(row.lesson_id, row)
+    return first
+
+
+def lesson_attendance(student_id, session) -> str | None:
+    """The student's status at the lesson's class: their record, ``absent`` once the
+    class is over without one, ``None`` before it ends (or with no class)."""
+    from app.services.attendance import clock
+
+    if session is None:
+        return None
+    record = Attendance.query.filter_by(class_session_id=session.id,
+                                        student_id=student_id).first()
+    if record is not None:
+        return record.status
+    return "absent" if clock.has_ended(session) else None
 
 
 def schedule_dict(session):

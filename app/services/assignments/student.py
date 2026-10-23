@@ -55,7 +55,8 @@ def visible_assignment(student_id, assignment_id) -> Assignment:
             or not _is_enrolled(student_id, assignment.cohort_id)):
         raise ServiceError(404, "assignment_not_found")
     lesson = db.session.get(CourseLesson, assignment.lesson_id) if assignment.lesson_id else None
-    ensure_module_open(lesson.topic_id if lesson else None, assignment.cohort_id)
+    ensure_module_open(lesson.topic_id if lesson else None, assignment.cohort_id,
+                       lesson.id if lesson else None)
     return assignment
 
 

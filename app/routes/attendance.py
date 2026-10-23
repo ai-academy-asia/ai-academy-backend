@@ -8,7 +8,7 @@ from functools import wraps
 
 from flask import Blueprint, g, jsonify, request
 
-from app.auth import actor_required, has_permission
+from app.auth import actor_required, has_permission, require_permission
 from app.services import attendance as svc
 from app.services.errors import ServiceError
 
@@ -52,7 +52,21 @@ def create_session(cohort_id):
 @bp.post("/teacher/cohorts/<int:cohort_id>/sessions/generate")
 @teacher_or_manager
 def generate_sessions(cohort_id):
-    return jsonify(svc.generate_sessions(g.current_user, cohort_id))
+    return jsonify(_generate(cohort_id))
+
+
+@bp.post("/admin/cohorts/<int:cohort_id>/sessions/generate")
+@require_permission("cohort:manage")
+def admin_generate_sessions(cohort_id):
+    """The Admin Panel's "generate sessions" button — same rules as the teacher's."""
+    return jsonify(_generate(cohort_id))
+
+
+def _generate(cohort_id):
+    data = body()
+    return svc.generate_sessions(
+        g.current_user, cohort_id, regenerate=data.get("regenerate") is True,
+        assign_lessons=data.get("assign_lessons") is True)
 
 
 @bp.get("/teacher/cohorts/<int:cohort_id>/students")

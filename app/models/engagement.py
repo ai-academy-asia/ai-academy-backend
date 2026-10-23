@@ -28,6 +28,11 @@ class ClassSession(db.Model):
     topic_id = db.Column(
         db.Integer, db.ForeignKey("course_topics.id", ondelete="SET NULL"), index=True
     )
+    # The lesson taught at this session (its module is ``topic_id``): dates and
+    # locks that lesson, and its attendance is that lesson's check-in.
+    lesson_id = db.Column(
+        db.Integer, db.ForeignKey("course_lessons.id", ondelete="SET NULL"), index=True
+    )
     session_date = db.Column(db.Date, nullable=False, index=True)
     start_time = db.Column(db.String(5))     # "HH:MM", Asia/Ulaanbaatar
     end_time = db.Column(db.String(5))

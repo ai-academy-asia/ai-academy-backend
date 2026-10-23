@@ -134,8 +134,9 @@ edit never changes it.
 |---|---|---|---|
 | POST | `/me/attendance/check-in` | S | `{token}` from the teacher's QR; `present`/`late` (>15 min) |
 | GET | `/me/attendance?course={slug}` | S | sessions + attended % |
-| GET / POST | `/teacher/cohorts/{id}/sessions` | T, staff:cohort:manage | |
-| POST | `/teacher/cohorts/{id}/sessions/generate` | T, staff:cohort:manage | from the cohort's weekdays/dates |
+| GET / POST | `/teacher/cohorts/{id}/sessions` | T, staff:cohort:manage | a session may carry `lesson_id` (sets its module): the lesson is then locked until that class, and `/me/modules/{id}/lessons` shows its `schedule` and `attendance` |
+| POST | `/teacher/cohorts/{id}/sessions/generate` | T, staff:cohort:manage | from the cohort's weekdays/dates; never two sessions on one date. Body `{regenerate, assign_lessons}`: `regenerate` moves future sessions to a new time and drops days no longer met (past, marked or handed-over sessions are kept); `assign_lessons` gives sessions without a lesson the course's lessons in order |
+| POST | `/admin/cohorts/{id}/sessions/generate` | staff:cohort:manage | same, for the Admin Panel |
 | PATCH / DELETE | `/teacher/sessions/{id}` | T, staff:cohort:manage | |
 | POST | `/teacher/sessions/{id}/qr` | T, staff:cohort:manage | rotating token, 5 min, session day only |
 | GET | `/teacher/sessions/{id}/attendance` | T, staff:cohort:manage | roster with status |

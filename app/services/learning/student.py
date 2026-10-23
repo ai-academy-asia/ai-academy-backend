@@ -78,6 +78,7 @@ def module_lessons(student_id, module_id) -> dict:
     done = path.completed_ids(enrollment.id)
     lessons = path.ordered_lessons(topic.id)
     order = path.position(path.ordered_topics(topic.course_id), topic.id)
+    classes = path.lesson_sessions(enrollment.cohort_id, [lesson.id for lesson in lessons])
     return {
         "module": module_ref(topic, order),
         "lessons": [{
@@ -87,7 +88,10 @@ def module_lessons(student_id, module_id) -> dict:
             "type": lesson.type,
             "duration_seconds": lesson.duration_seconds,
             "completed": lesson.id in done,
-            "locked": locked,
+            "locked": locked or path.is_locked(classes.get(lesson.id)),
+            # The lesson's own class, when it has one: when, and how the student did.
+            "schedule": path.schedule_dict(classes.get(lesson.id)),
+            "attendance": path.lesson_attendance(student_id, classes.get(lesson.id)),
         } for index, lesson in enumerate(lessons, 1)],
     }
 
@@ -96,7 +100,7 @@ def module_lessons(student_id, module_id) -> dict:
 def _open_lesson(student_id, lesson_id):
     """(lesson, enrollment) for a lesson whose module has opened, else 409."""
     lesson, enrollment = lesson_for_student(student_id, lesson_id)
-    ensure_module_open(lesson.topic_id, enrollment.cohort_id)
+    ensure_module_open(lesson.topic_id, enrollment.cohort_id, lesson.id)
     return lesson, enrollment
 
 
@@ -169,7 +173,7 @@ def complete_lesson(student_id, lesson_id) -> dict:
 def put_note(student_id, lesson_id, data) -> tuple:
     """Upsert the student's note. Returns ``(note dict, created)``."""
     lesson, enrollment = lesson_for_student(student_id, lesson_id)
-    ensure_module_open(lesson.topic_id, enrollment.cohort_id)
+    ensure_module_open(lesson.topic_id, enrollment.cohort_id, lesson.id)
     content = data.get("content")
     content = content.strip() if isinstance(content, str) else ""
     if not content:

@@ -5,19 +5,18 @@ Every function takes the caller's account and resolves the cohort through
 their own cohorts (others' answer 404) and ``cohort:manage`` staff touch any.
 """
 import re
-from datetime import date, timedelta
+from datetime import date
 
 from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db
-from app.models import ClassSession, Cohort, CourseTopic, Enrollment, Student
+from app.models import ClassSession, Cohort, CourseLesson, CourseTopic, Enrollment, Student
 from app.services.access import cohort_for_teacher
 from app.services.errors import ServiceError
 from app.services.params import get_by_id
 from app.timeutil import iso
 
 _TIME_RE = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
-WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
 
 
 # ----------------------------------------------------------------- serialisers
@@ -26,6 +25,7 @@ def session_dict(session: ClassSession) -> dict:
         "id": session.id,
         "cohort_id": session.cohort_id,
         "topic_id": session.topic_id,
+        "lesson_id": session.lesson_id,
         "session_date": iso(session.session_date),
         "start_time": session.start_time,
         "end_time": session.end_time,
@@ -94,6 +94,15 @@ def _parse_topic(value, cohort):
     return topic.id
 
 
+def _parse_lesson(value, cohort):
+    if value is None:
+        return None
+    lesson = get_by_id(CourseLesson, value)
+    if lesson is None or lesson.topic.course_id != cohort.course_id:
+        raise ServiceError(400, "invalid_lesson_id")
+    return lesson
+
+
 def _apply(session, data, cohort, *, creating):
     if creating or "session_date" in data:
         if data.get("session_date") in (None, ""):
@@ -110,6 +119,14 @@ def _apply(session, data, cohort, *, creating):
         raise ServiceError(400, "invalid_time_range")
     if "topic_id" in data:
         session.topic_id = _parse_topic(data["topic_id"], cohort)
+    if "lesson_id" in data:
+        lesson = _parse_lesson(data["lesson_id"], cohort)
+        session.lesson_id = lesson.id if lesson else None
+        if lesson is not None:
+            # A lesson's session covers the lesson's module; a different one is a typo.
+            if "topic_id" in data and session.topic_id not in (None, lesson.topic_id):
+                raise ServiceError(400, "lesson_not_in_topic")
+            session.topic_id = lesson.topic_id
 
 
 def _slot_taken(session) -> bool:
@@ -176,38 +193,3 @@ def delete_session(account, session_id) -> None:
 
 def session_cohort(session) -> Cohort:
     return db.session.get(Cohort, session.cohort_id)
-
-
-# ----------------------------------------------------------------- generate
-def generate_sessions(account, cohort_id) -> dict:
-    """One session per meeting day between the cohort's dates; existing slots kept."""
-    cohort = cohort_for_teacher(account, cohort_id)
-    days = cohort.meeting_days if isinstance(cohort.meeting_days, list) else []
-    weekdays = {WEEKDAYS.index(d) for d in days if d in WEEKDAYS}
-    if not (cohort.start_date and cohort.end_date and weekdays and cohort.start_time):
-        raise ServiceError(400, "cohort_schedule_incomplete")
-    existing = {
-        (s.session_date, s.start_time)
-        for s in ClassSession.query.filter_by(cohort_id=cohort.id).all()
-    }
-    created, skipped = [], 0
-    day = cohort.start_date
-    while day <= cohort.end_date:
-        if day.weekday() in weekdays:
-            if (day, cohort.start_time) in existing:
-                skipped += 1
-            else:
-                created.append(ClassSession(
-                    cohort_id=cohort.id, session_date=day,
-                    start_time=cohort.start_time, end_time=cohort.end_time,
-                ))
-        day += timedelta(days=1)
-    db.session.add_all(created)
-    try:
-        db.session.commit()
-    except IntegrityError:
-        db.session.rollback()
-        raise ServiceError(409, "session_exists") from None
-    return {"created": len(created), "skipped": skipped,
-            "sessions": [session_dict(s) for s in created]}
-

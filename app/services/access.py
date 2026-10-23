@@ -55,19 +55,22 @@ def lesson_for_student(student_id, lesson_id) -> tuple:
     return lesson, enrollment_for_course(student_id, lesson.topic.course_id)
 
 
-def ensure_module_open(topic_id, cohort_id) -> None:
-    """``409 lesson_locked`` while the module's first class session is still ahead.
+def ensure_module_open(topic_id, cohort_id, lesson_id=None) -> None:
+    """``409 lesson_locked`` while the module's first class session — or, for a
+    lesson given its own class, that class — is still ahead.
 
     Every way into a module's content goes through this — the lesson screen, a
     material download, a quiz, an assignment — or a sequential id would open
     what the class date has not.
     """
-    if topic_id is None:
-        return
     from app.services.learning import path  # learning imports this module
 
-    session = path.first_sessions(cohort_id, [topic_id]).get(topic_id)
-    if path.is_locked(session):
+    if topic_id is not None:
+        session = path.first_sessions(cohort_id, [topic_id]).get(topic_id)
+        if path.is_locked(session):
+            raise ServiceError(409, "lesson_locked")
+    own_class = path.lesson_sessions(cohort_id, [lesson_id]).get(lesson_id) if lesson_id else None
+    if path.is_locked(own_class):
         raise ServiceError(409, "lesson_locked")
 
 

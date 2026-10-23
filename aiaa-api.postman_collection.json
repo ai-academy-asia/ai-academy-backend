@@ -3534,6 +3534,36 @@
                   ]
                 }
               }
+            },
+            {
+              "name": "Generate sessions (regenerate / assign lessons)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"regenerate\": false,\n  \"assign_lessons\": false\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/cohorts/{{cohort_id}}/sessions/generate",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "cohorts",
+                    "{{cohort_id}}",
+                    "sessions",
+                    "generate"
+                  ]
+                },
+                "description": "Хуваариас сесс үүсгэнэ; нэг өдөрт хоёр сесс хэзээ ч үүсгэхгүй. regenerate=true: ирээдүйн, ирц/орлох хүсэлтгүй сессийг шинэ цаг руу зөөж, хуваарьт байхгүй өдрийнхийг устгана. assign_lessons=true: хичээлгүй сессүүдэд курсийн хичээлийг дарааллаар онооно."
+              }
             }
           ]
         },
